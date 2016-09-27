@@ -54,7 +54,8 @@ script:
 after_success:
   # deploy snapshot artifacts to maven central
   - if [ "$TRAVIS_JDK_VERSION" == "oraclejdk8" ] &&
-       [ "$TRAVIS_BRANCH" == "master" ] && [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
+       ([ "$TRAVIS_BRANCH" == "master" ] || [ "$TRAVIS_BRANCH" == "issue_806" ] ) && 
+       [ "$TRAVIS_PULL_REQUEST" == "false" ]; then
          travis_wait mvn deploy --settings core/files/settings.xml -DskipTests=true -B;
     else
         echo "Not deploying snapshot artifact for $TRAVIS_BRANCH";
