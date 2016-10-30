@@ -15,25 +15,27 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package com.graphhopper.routing.util;
+package com.graphhopper.util;
 
-import com.graphhopper.util.PMap;
+import org.junit.Test;
+import static org.junit.Assert.*;
 
 /**
  * @author Peter Karich
  */
-public interface FlagEncoderFactory {
-    final String CAR = "car";
-    final String CAR4WD = "car4wd";
-    final String BIKE = "bike";
-    final String BIKE2 = "bike2";
-    final String RACINGBIKE = "racingbike";
-    final String MOUNTAINBIKE = "mtb";
-    final String FOOT = "foot";
-    final String HIKE = "hike";
-    final String MOTORCYCLE = "motorcycle";
-    final String GENERIC = "generic";
-    final FlagEncoderFactory DEFAULT = new DefaultFlagEncoderFactory();
+public class FinishInstructionTest {
 
-    FlagEncoder createFlagEncoder(String name, PMap configuration);
+    @Test
+    public void testCtor() {
+        assertTrue(new FinishInstruction("test", 123, 321, 2).getPoints().is3D());
+        assertFalse(new FinishInstruction("test", 123, 321, Double.NaN).getPoints().is3D());
+
+        PointList pointAccess = new PointList(2, true);
+        pointAccess.add(1, 2, 3);
+        assertTrue(new FinishInstruction("test", pointAccess, 0).getPoints().is3D());
+
+        pointAccess = new PointList(2, false);
+        pointAccess.add(1, 2);
+        assertFalse(new FinishInstruction("test", pointAccess, 0).getPoints().is3D());
+    }
 }

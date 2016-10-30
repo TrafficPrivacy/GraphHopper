@@ -17,7 +17,6 @@
  */
 package com.graphhopper.routing;
 
-import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.routing.util.TraversalMode;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.util.PMap;
@@ -80,6 +79,9 @@ public class AlgorithmOptions {
             b.weighting(opts.getWeighting());
         if (opts.maxVisitedNodes >= 0)
             b.maxVisitedNodes(opts.maxVisitedNodes);
+        if (!opts.hints.isEmpty())
+            b.hints(opts.hints);
+
         return b;
     }
 
@@ -88,6 +90,10 @@ public class AlgorithmOptions {
      */
     public TraversalMode getTraversalMode() {
         return traversalMode;
+    }
+
+    public boolean hasWeighting() {
+        return weighting != null;
     }
 
     public Weighting getWeighting() {
@@ -140,7 +146,7 @@ public class AlgorithmOptions {
         public Builder algorithm(String algorithm) {
             this.opts.algorithm = algorithm;
             return this;
-        }        
+        }
 
         public Builder maxVisitedNodes(int maxVisitedNodes) {
             this.opts.maxVisitedNodes = maxVisitedNodes;
