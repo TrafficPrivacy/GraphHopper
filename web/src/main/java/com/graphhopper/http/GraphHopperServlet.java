@@ -71,7 +71,8 @@ public class GraphHopperServlet extends GHBaseServlet {
         boolean enableInstructions = writeGPX || getBooleanParam(httpReq, "instructions", true);
         boolean calcPoints = getBooleanParam(httpReq, "calc_points", true);
         boolean enableElevation = getBooleanParam(httpReq, "elevation", false);
-        boolean pointsEncoded = getBooleanParam(httpReq, "points_encoded", true);
+        //boolean pointsEncoded = getBooleanParam(httpReq, "points_encoded", true);
+        boolean pointsEncoded = getBooleanParam(httpReq, "points_encoded", false);
 
         String vehicleStr = getParam(httpReq, "vehicle", "car");
         String weighting = getParam(httpReq, "weighting", "fastest");
@@ -171,9 +172,8 @@ public class GraphHopperServlet extends GHBaseServlet {
 
             if (ghRsp.hasErrors())
                 writeJsonError(httpRes, SC_BAD_REQUEST, new JSONObject(map));
-            else {
+            else
                 writeJson(httpReq, httpRes, new JSONObject(map));
-            }
         }
     }
 
