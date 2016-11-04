@@ -16,6 +16,7 @@ class PostProcessing implements Runnable {
     private double mOverlapping;
     private GeoPoint mStart, mEnd;
     private RoutingTest mEngine;
+    private final long mIndex;
 
     /**
      *
@@ -23,13 +24,14 @@ class PostProcessing implements Runnable {
      * @param paths the first element should be the original path
      */
     public PostProcessing(double threshold, List<PathWrapper> paths, Trackable<PostProcessing> callBack,
-                          GeoPoint start, GeoPoint end, final RoutingTest routeEngine) {
+                          GeoPoint start, GeoPoint end, final RoutingTest routeEngine, long index) {
         mThreshold = threshold;
         mPaths = paths;
         mCallback = callBack;
         mStart = start;
         mEnd = end;
         mEngine = routeEngine;
+        mIndex = index;
     }
 
     public void run() {
@@ -75,5 +77,9 @@ class PostProcessing implements Runnable {
 
     public double getPercentOverlapping() {
         return mOverlapping;
+    }
+
+    public long getIndex() {
+        return mIndex;
     }
 }
