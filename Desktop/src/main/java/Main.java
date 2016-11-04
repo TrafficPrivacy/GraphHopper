@@ -1,24 +1,11 @@
-import com.graphhopper.GHRequest;
-import com.graphhopper.GHResponse;
 import com.graphhopper.PathWrapper;
-import com.graphhopper.json.geo.Point;
-import com.graphhopper.reader.osm.GraphHopperOSM;
-import com.graphhopper.routing.util.EncodingManager;
-import com.graphhopper.util.DouglasPeucker;
-import com.graphhopper.util.Parameters.*;
-import com.graphhopper.util.PointList;
-import com.sun.org.apache.xalan.internal.xsltc.cmdline.getopt.GetOptsException;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-import org.omg.PortableInterceptor.SYSTEM_EXCEPTION;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import java.time.Clock;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
 
 import static java.lang.System.exit;
 
@@ -35,7 +22,8 @@ public class Main {
     private static GeoPoint dot_generator(GeoPoint origin, double maxradii) {
         double radii = Math.random() * maxradii;
         double angle = Math.random() * Math.PI * 2;
-        GeoPoint result = new GeoPoint(origin.getLatitude() + radii * Math.sin(angle), origin.getLongitude() + radii * Math.cos(angle) / 2);
+        GeoPoint result = new GeoPoint(origin.getLatitude() + radii * Math.sin(angle),
+                                origin.getLongitude() + radii * Math.cos(angle) / 2);
         return result;
     }
 
@@ -57,10 +45,11 @@ public class Main {
                     result = new ArrayList<PathWrapper>();
                     GeoPoint start = new GeoPoint(Double.parseDouble(record.get(6)), Double.parseDouble(record.get(5)));
                     GeoPoint end   = new GeoPoint(Double.parseDouble(record.get(8)), Double.parseDouble(record.get(7)));
-//                    System.out.println("===========================================================");
                     long time_1 = System.currentTimeMillis();
                     for (int i = 0; i < 100; i++) {
-                        RoutingRunnable routingTest = new RoutingRunnable(record.getRecordNumber(), dot_generator(start, RADIUS), dot_generator(end, RADIUS),
+                        RoutingRunnable routingTest = new RoutingRunnable(record.getRecordNumber(),
+                                dot_generator(start, RADIUS),
+                                dot_generator(end, RADIUS),
                                 new Trackable<RoutingRunnable>() {
                                     public void doneCallBack(RoutingRunnable object) {
                                         synchronized (lock) {
