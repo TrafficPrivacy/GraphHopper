@@ -9,12 +9,12 @@ public class Draw {
     public static final int LINE = 0;
     public static final int HISTOGRAM = 1;
 
-    public void draw(ArrayList <Drawable> data, int mode) throws Exception{
-        int n = data.size();
+    public void draw(Drawable data[], int mode) throws Exception{
+        int n = data.length;
         if (mode == HISTOGRAM) {
             for (int i = 0; i < n; i++) {
                 double x = 1.0 * i / n;
-                double y = data.get(i).getData();
+                double y = data[i].getData() * 2.0;
                 double rw = 0.5 / n;
                 double rh = y;
                 StdDraw.filledRectangle(x, y, rw, rh);
@@ -23,8 +23,8 @@ public class Draw {
             StdDraw.setXscale(0, n);
             StdDraw.setYscale(0, 1);
             StdDraw.setPenRadius(0.01);
-            for (int i = 1; i <= n; i++) {
-                StdDraw.point(i, data.get(i).getData());
+            for (int i = 0; i < n; i++) {
+                StdDraw.point(i, data[i].getData());
             }
         } else {
             throw new Exception("Invalid drawing mode");

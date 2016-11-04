@@ -16,13 +16,14 @@ public class Main {
 
     private static final double RADIUS = 0.007;
     private static final int NUM_OF_DOTS = 100;
-    private static final double THRESHOLD = 0.5;
+    private static final double THRESHOLD = 0.3;
     private static Object lock;
     private static Object ppLock;
     private static ArrayList<PathWrapper> result;
     private static ArrayList<ResultHolder> mResult;
     private static int mSemaphor = 0;
     private static int mPPSemaphor = 0;
+    private static Counter[] mData;
 
 
     private static GeoPoint dot_generator(GeoPoint origin, double maxradii) {
@@ -47,7 +48,12 @@ public class Main {
         int counter = 0;
         int totalNumber = Integer.parseInt(args[2]);
         mResult = new ArrayList<ResultHolder>();
+        mData = new Counter[100];
+        for (int i = 0; i < 100; i++) {
+            mData[i] = new Counter(totalNumber);
+        }
         try {
+            long stopwatch = System.currentTimeMillis();
             parser = CSVParser.parse(csvFile, StandardCharsets.US_ASCII, CSVFormat.EXCEL);
             for (final CSVRecord record : parser) {
                 mSemaphor = 0;
@@ -80,9 +86,11 @@ public class Main {
                     }
                     PostProcessing pp = new PostProcessing(THRESHOLD, result, new Trackable<PostProcessing>() {
                         public void doneCallBack(PostProcessing object) {
-                            ResultHolder rh = new ResultHolder(object.getIndex(), object.getPercentOverlapping());
+                            double p = object.getPercentOverlapping();
+//                            ResultHolder rh = new ResultHolder(object.getIndex(), p);
+                            mData[(int)(p * 100)].increment();
                             synchronized (ppLock) {
-                                mResult.add(rh);
+//                                mResult.add(rh);
                                 mPPSemaphor ++;
                             }
                         }
@@ -92,7 +100,9 @@ public class Main {
                     }, start, end, engine, record.getRecordNumber());
                     new Thread(pp).start();
                     if (counter % 100 == 0) {
-                        System.out.println(counter);
+                        long temp = System.currentTimeMillis();
+                        System.out.println(counter + "\t\t" + (temp - stopwatch) + " ms");
+                        stopwatch = temp;
                         if (counter == totalNumber) break;
                     }
                 }
@@ -103,15 +113,56 @@ public class Main {
                     if (mPPSemaphor == totalNumber) break;
                 }
             }
-            Collections.sort(mResult, new Comparator<ResultHolder>() {
-                public int compare(ResultHolder o1, ResultHolder o2) {
-                    return o1.compareTo(o2);
-                }
-            });
+//            Collections.sort(mResult, new Comparator<ResultHolder>() {
+//                public int compare(ResultHolder o1, ResultHolder o2) {
+//                    return o1.compareTo(o2);
+//                }
+//            });
+
+            new Draw().draw(mData, Draw.HISTOGRAM);
+            for (int i = 1; i < mData.length; i++) {
+                mData[i].setData(mData[i].getUnweightedData() + mData[i - 1].getUnweightedData());
+                System.out.println(mData[i]);
+            }
+            new Draw().draw(mData, Draw.LINE);
 
         } catch (Exception e) {
             System.err.println(e);
             exit(1);
+        }
+    }
+
+    private static class Counter implements Drawable {
+        private double mData;
+        private double mTotal;
+
+        public Counter(double total) {
+            mTotal = total;
+            mData = 0.0;
+        }
+
+        public void increment() {
+            mData ++;
+        }
+
+        public void setData(double data) {
+            mData = data;
+        }
+
+        public double getData() {
+            return mData / mTotal;
+        }
+
+        public double getUnweightedData() {
+            return mData;
+        }
+
+        @Override
+        public String toString() {
+            return "Counter{" +
+                    "mData=" + mData +
+                    ", mTotal=" + mTotal +
+                    '}';
         }
     }
 
