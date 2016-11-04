@@ -31,4 +31,8 @@ class GeoPoint {
         result += mLatitude + ", " + mLongitude + ")";
         return result;
     }
+
+    public boolean equals(Object other) {
+        return ((GeoPoint)other).mLatitude == mLatitude && ((GeoPoint)other).mLongitude == mLongitude;
+    }
 }

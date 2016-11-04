@@ -22,4 +22,8 @@ class Pair {
                 (mDotb.getLatitudeE6() + mDotb.getLongitudeE6()) / 31;
         return result;
     }
+
+    public String toString() {
+        return "[ " + mDota + ", " + mDotb + " ]";
+    }
 }

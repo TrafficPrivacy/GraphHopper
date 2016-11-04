@@ -14,24 +14,37 @@ class PostProcessing implements Runnable {
     private final double mThreshold;
     private List<PathWrapper> mPaths;
     private double mOverlapping;
+    private GeoPoint mStart, mEnd;
+    private RoutingTest mEngine;
 
     /**
      *
      * @param threshold
      * @param paths the first element should be the original path
      */
-    public PostProcessing(double threshold, List<PathWrapper> paths) {
+    public PostProcessing(double threshold, List<PathWrapper> paths, Trackable<PostProcessing> callBack,
+                          GeoPoint start, GeoPoint end, final RoutingTest routeEngine) {
         mThreshold = threshold;
         mPaths = paths;
+        mCallback = callBack;
+        mStart = start;
+        mEnd = end;
+        mEngine = routeEngine;
     }
 
     public void run() {
-        ArrayList<HashSet<Pair>> pathSets = new ArrayList<HashSet<Pair>>();
         mCallback.startCallBack(this);
-        /** Convert every path to map **/
+        ArrayList<HashSet<Pair>> pathSets = new ArrayList<HashSet<Pair>>();
+        /** Convert every path to set **/
+        mPaths.add(0, mEngine.calcPath(mStart, mEnd));
         for (PathWrapper path : mPaths) {
             HashSet<Pair> current = new HashSet<Pair>();
             pathSets.add(current);
+            if (path.hasErrors()){
+                mOverlapping = 0;
+                mCallback.doneCallBack(this);
+                return;
+            }
             PointList points = path.getPoints();
             if (points.getSize() > 1) {
                 GeoPoint first = new GeoPoint(points.getLatitude(0), points.getLongitude(0));
@@ -44,9 +57,10 @@ class PostProcessing implements Runnable {
             }
         }
         HashSet<Pair> origPathSet = pathSets.get(0);
+        pathSets.remove(0);
         /** compare each segment to each generated paths **/
-        int totalGenerated = pathSets.size() - 1;
-        int numOverlap = 0;
+        int totalGenerated = pathSets.size();
+        double numOverlap = 0;
         for (Pair segment : origPathSet) {
             int overlapNum = 0;
             for (HashSet<Pair> set : pathSets) {

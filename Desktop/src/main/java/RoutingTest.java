@@ -26,7 +26,7 @@ class RoutingTest {
                 setAlgorithm(Parameters.Algorithms.DIJKSTRA_BI);
         req.getHints().
                 put(Parameters.Routing.INSTRUCTIONS, "false");
-        System.out.println("start = " + from + " end = " + to);
+//        System.out.println("start = " + from + " end = " + to);
         GHResponse resp = mHopper.route(req);
         try {
             return resp.getBest();
