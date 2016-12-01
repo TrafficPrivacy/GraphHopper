@@ -4,11 +4,8 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 
 import java.io.File;
-import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 
 import static java.lang.System.exit;
 
@@ -62,7 +59,7 @@ public class Main {
                     result = new ArrayList<PathWrapper>();
                     GeoPoint start = new GeoPoint(Double.parseDouble(record.get(6)), Double.parseDouble(record.get(5)));
                     GeoPoint end   = new GeoPoint(Double.parseDouble(record.get(8)), Double.parseDouble(record.get(7)));
-                    for (int i = 0; i < 100; i++) {
+                    for (int i = 0; i < NUM_OF_DOTS; i++) {
                         RoutingRunnable routingTest = new RoutingRunnable(record.getRecordNumber(),
                                 dot_generator(start, RADIUS),
                                 dot_generator(end, RADIUS),
@@ -81,7 +78,7 @@ public class Main {
                     }
                     while (true) {
                         synchronized (lock) {
-                            if (mSemaphor == 100) break;
+                            if (mSemaphor == NUM_OF_DOTS) break;
                         }
                     }
                     PostProcessing pp = new PostProcessing(THRESHOLD, result, new Trackable<PostProcessing>() {

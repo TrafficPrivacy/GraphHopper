@@ -1,5 +1,6 @@
 import com.graphhopper.GHRequest;
 import com.graphhopper.GHResponse;
+import com.graphhopper.GraphHopper;
 import com.graphhopper.PathWrapper;
 import com.graphhopper.reader.osm.GraphHopperOSM;
 import com.graphhopper.routing.util.EncodingManager;
@@ -11,11 +12,13 @@ import com.graphhopper.util.Parameters;
 class RoutingTest {
     private GraphHopperOSM mHopper;
 
+    private static final String GHLOCATION = "A:\\Research\\Graphhopper\\Desktop\\data\\graphhoper";
+
     public RoutingTest(String OSMfileLocation) {
         mHopper = new GraphHopperOSM();
         mHopper.setOSMFile(OSMfileLocation);
         mHopper.forDesktop();
-        mHopper.setGraphHopperLocation("/mnt/Programming/Research/Graphhopper/Desktop/data/graphhoper");
+        mHopper.setGraphHopperLocation(GHLOCATION);
         mHopper.setEncodingManager(new EncodingManager("car"));
         mHopper.importOrLoad();
     }

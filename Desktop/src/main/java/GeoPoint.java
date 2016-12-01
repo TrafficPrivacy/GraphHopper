@@ -1,3 +1,5 @@
+import org.mapsforge.core.model.LatLong;
+
 /**
  * Created by zonglin on 11/3/16.
  */
@@ -8,6 +10,11 @@ class GeoPoint {
     public GeoPoint(final double latitude, final double longitude) {
         mLatitude = latitude;
         mLongitude = longitude;
+    }
+
+    public GeoPoint(LatLong point) {
+        mLatitude = point.latitude;
+        mLongitude = point.longitude;
     }
 
     public double getLatitude() {
