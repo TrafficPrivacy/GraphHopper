@@ -35,13 +35,19 @@ public class Main {
         if (args.length != 3){
             throw new Exception("Arguments not enough. Requires 3");
         }
+
+        MapUI mapUI = new MapUI("/mnt/Programming/Research/Graphhopper/Desktop/data/illinois.map", "UI Test");
+
+        mapUI.setVisible(true);
+
         final CSVParser parser;
         File csvFile = new File(args[1]);
         System.out.println(csvFile);
         System.out.println(args[0]);
         lock = new Object();
         ppLock = new Object();
-        RoutingTest engine = new RoutingTest(args[0]);
+//        RoutingTest engine = new RoutingTest(args[0]);
+        RoutingTest engine = new RoutingTest("/mnt/Programming/Research/Graphhopper/Desktop/data/illinois-latest.osm.pbf");
         int counter = 0;
         int totalNumber = Integer.parseInt(args[2]);
         mResult = new ArrayList<ResultHolder>();
@@ -52,15 +58,19 @@ public class Main {
         try {
             long stopwatch = System.currentTimeMillis();
             parser = CSVParser.parse(csvFile, StandardCharsets.US_ASCII, CSVFormat.EXCEL);
-            for (final CSVRecord record : parser) {
+//            for (final CSVRecord record : parser) {
+//            CSVRecord record = parser.getRecords().get(10);
                 mSemaphor = 0;
-                if (record.size() > 5 && !record.get(5).contains("p")) {
-                    counter ++;
+//                if (record.size() > 5 && !record.get(5).contains("p")) {
+//                    counter ++;
                     result = new ArrayList<PathWrapper>();
-                    GeoPoint start = new GeoPoint(Double.parseDouble(record.get(6)), Double.parseDouble(record.get(5)));
-                    GeoPoint end   = new GeoPoint(Double.parseDouble(record.get(8)), Double.parseDouble(record.get(7)));
+//                    GeoPoint start = new GeoPoint(Double.parseDouble(record.get(6)), Double.parseDouble(record.get(5)));
+//                    GeoPoint end   = new GeoPoint(Double.parseDouble(record.get(8)), Double.parseDouble(record.get(7)));
+                    GeoPoint start = new GeoPoint(40.1093094, -88.2305774);
+                    GeoPoint end   = new GeoPoint(41.9741032, -87.870702);
                     for (int i = 0; i < NUM_OF_DOTS; i++) {
-                        RoutingRunnable routingTest = new RoutingRunnable(record.getRecordNumber(),
+//                        RoutingRunnable routingTest = new RoutingRunnable(record.getRecordNumber(),
+                        RoutingRunnable routingTest = new RoutingRunnable(0,
                                 dot_generator(start, RADIUS),
                                 dot_generator(end, RADIUS),
                                 new Trackable<RoutingRunnable>() {
@@ -81,6 +91,13 @@ public class Main {
                             if (mSemaphor == NUM_OF_DOTS) break;
                         }
                     }
+
+                    mapUI.setMainPath(engine.calcPath(start, end).getPoints());
+                    for (PathWrapper p : result) {
+                        mapUI.addPath(p.getPoints());
+                    }
+                    mapUI.showUpdate();
+
                     PostProcessing pp = new PostProcessing(THRESHOLD, result, new Trackable<PostProcessing>() {
                         public void doneCallBack(PostProcessing object) {
                             double p = object.getPercentOverlapping();
@@ -94,16 +111,17 @@ public class Main {
 
                         public void startCallBack(PostProcessing object) {
                         }
-                    }, start, end, engine, record.getRecordNumber());
+//                    }, start, end, engine, record.getRecordNumber());
+                    }, start, end, engine, 0);
                     new Thread(pp).start();
                     if (counter % 100 == 0) {
                         long temp = System.currentTimeMillis();
                         System.out.println(counter + "\t\t" + (temp - stopwatch) + " ms");
                         stopwatch = temp;
-                        if (counter == totalNumber) break;
+//                        if (counter == totalNumber) break;
                     }
-                }
-            }
+//                }
+//            }
             while(true) {
                 Thread.sleep(50);
                 synchronized (ppLock) {
