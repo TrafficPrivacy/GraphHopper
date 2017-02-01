@@ -33,6 +33,7 @@ import org.mapsforge.map.awt.util.JavaPreferences;
 import org.mapsforge.map.awt.view.MapView;
 import org.mapsforge.map.datastore.MapDataStore;
 import org.mapsforge.map.datastore.MultiMapDataStore;
+import org.mapsforge.map.layer.Layer;
 import org.mapsforge.map.layer.Layers;
 import org.mapsforge.map.layer.cache.FileSystemTileCache;
 import org.mapsforge.map.layer.cache.InMemoryTileCache;
@@ -72,65 +73,14 @@ public final class MapUI {
 
     private final JFrame FRAME;
 
-    private HashMap<Pair, Integer> mFrequencies;
+    private final JLayeredPane PANE;
+
+    private HashMap<Pair, OverLapCounter> mFrequencies;
     private HashMap<LatLong, Integer> mDots;
     private int mTotalPaths;
+    private int mMainPathLength;
 
     private final float THRESHOLD = 0.8f;
-
-    private static LatLong dot_generator(LatLong origin, double maxRadius) {
-        double radii = Math.random() * maxRadius;
-        double angle = Math.random() * Math.PI * 2;
-        LatLong result = new LatLong(origin.latitude + radii * Math.sin(angle),
-                                origin.longitude+ radii * Math.cos(angle) / 2);
-        return result;
-    }
-
-    private int getHeatMapColor(float value) {
-//        int NUM_COLORS = 4;
-//        float color[][] = { {62, 89, 255}, {81, 207, 255}, {93, 255, 35}, {255, 14, 29} };
-//        int idx1, idx2;
-//        float fractBetween = 0;
-//        if(value <= 0) {
-//            idx1 = idx2 = 0;
-//        } else if(value >= 1) {
-//            idx1 = idx2 = NUM_COLORS - 1;
-//        } else {
-//            value = value * (NUM_COLORS-1);        // Will multiply value by 3.
-//            idx1  = (int)floor(value);             // Our desired color will be after this index.
-//            idx2  = idx1+1;                        // ... and before this index (inclusive).
-//            fractBetween = value - idx1;           // Distance between the two indexes (0-1).
-//        }
-//        int r = (int)((color[idx2][0] - color[idx1][0])*fractBetween + color[idx1][0]) * 255;
-//        int g = (int)((color[idx2][1] - color[idx1][1])*fractBetween + color[idx1][1]) * 255;
-//        int b = (int)((color[idx2][2] - color[idx1][2])*fractBetween + color[idx1][2]) * 255;
-//        return new java.awt.Color(r, g, b, 255).getRGB();
-        int color[][] = {{6, 0, 133, 255}, {255, 255, 0}};
-        int color2[][] = {{255, 255, 0}, {255, 14, 29, 255}};
-        int r, g, b;
-        if (value < THRESHOLD) {
-            value *= 10.0f / (THRESHOLD * 10);
-            r = (int)((color[1][0] - color[0][0]) * value + color[0][0]);
-            g = (int)((color[1][1] - color[0][1]) * value + color[0][1]);
-            b = (int)((color[1][2] - color[0][2]) * value + color[0][2]);
-        } else {
-            value -= THRESHOLD;
-            value *= 10.0f / ((1 - THRESHOLD) * 10);
-            r = (int)((color2[1][0] - color2[0][0]) * value + color2[0][0]);
-            g = (int)((color2[1][1] - color2[0][1]) * value + color2[0][1]);
-            b = (int)((color2[1][2] - color2[0][2]) * value + color2[0][2]);
-        }
-//        if (value < 0.25f) {
-//            return new java.awt.Color(6, 0, 133, 255).getRGB();
-//        } else if (value < 0.5f) {
-//            return new java.awt.Color(93, 255, 35, 255).getRGB();
-//        } else if (value < 0.75f) {
-//            return new java.awt.Color(255, 255, 0, 255).getRGB();
-//        } else {
-//            return new java.awt.Color(255, 14, 29, 255).getRGB();
-//        }
-        return new java.awt.Color(r, g, b, 255).getRGB();
-    }
 
     public MapUI(String mapFileLocation, String windowTitle) {
         // Increase read buffer limit
@@ -148,8 +98,15 @@ public final class MapUI {
         final PreferencesFacade preferencesFacade = new JavaPreferences(Preferences.userNodeForPackage(MapUI.class));
 
         FRAME = new JFrame();
+        PANE  = new JLayeredPane();
+//        PANE.add(MAP_VIEW, 0);
+
+//        JLabel test = new JLabel("hello");
+
+//        PANE.add(test, 1);
+
         FRAME.setTitle(windowTitle);
-        FRAME.add(mapView);
+        FRAME.add(MAP_VIEW);
         FRAME.pack();
         FRAME.setSize(new Dimension(800, 600));
         FRAME.setLocationRelativeTo(null);
@@ -171,9 +128,10 @@ public final class MapUI {
                 model.mapViewPosition.setMapPosition(new MapPosition(boundingBox.getCenterPoint(), zoomLevel));
             }
         });
-        mFrequencies = new HashMap<Pair, Integer>();
+        mFrequencies = new HashMap<Pair, OverLapCounter>();
         mDots = new HashMap<LatLong, Integer>();
         mTotalPaths  = 0;
+        mMainPathLength = 1;
     }
 
     public void setVisible(boolean visible) {
@@ -216,12 +174,13 @@ public final class MapUI {
             LatLong curt;
             for (int i = 1; i < path.size(); i++) {
                 curt = new LatLong(path.getLat(i), path.getLon(i));
-                mFrequencies.put(new Pair(prev, curt), 1);
+                mFrequencies.put(new Pair(prev, curt), new OverLapCounter(true));
                 prev = curt;
             }
             mTotalPaths ++;
             mDots.put(new LatLong(path.getLat(0), path.getLon(0)), new java.awt.Color(0, 0, 0, 255).getRGB());
             mDots.put(new LatLong(path.getLat(path.size() - 1), path.getLon(path.size() - 1)), new java.awt.Color(0, 0, 0, 255).getRGB());
+            mMainPathLength = mFrequencies.size();
         }
     }
 
@@ -234,34 +193,63 @@ public final class MapUI {
                 curt = new LatLong(path.getLat(i), path.getLon(i));
                 Pair pair = new Pair(prev, curt);
                 if (mFrequencies.containsKey(pair)) {
-                    mFrequencies.put(pair, mFrequencies.get(pair) + 1);
-                    num_overlap ++;
+                    mFrequencies.get(pair).mNumOverlap += 1;
+                    if (mFrequencies.get(pair).mMain)
+                        num_overlap ++;
                 } else {
-                    mFrequencies.put(pair, 1);
+                    mFrequencies.put(pair, new OverLapCounter(false));
                 }
                 prev = curt;
             }
             mTotalPaths ++;
-            mDots.put(new LatLong(path.getLat(0), path.getLon(0)), getHeatMapColor((0.0f + num_overlap) / mFrequencies.size()));
-            mDots.put(new LatLong(path.getLat(path.size() - 1), path.getLon(path.size() - 1)), getHeatMapColor((0.0f + num_overlap) / mFrequencies.size()));
+            mDots.put(new LatLong(path.getLat(0), path.getLon(0)), getHeatMapColor((0.0f + num_overlap) / mMainPathLength));
+            mDots.put(new LatLong(path.getLat(path.size() - 1), path.getLon(path.size() - 1)), getHeatMapColor((0.0f + num_overlap) / mMainPathLength));
         }
     }
 
     public void showUpdate() {
-        // draw the dots
-        for (LatLong key : mDots.keySet()) {
-            createDot(key, mDots.get(key), 13.0f);
-        }
         // draw the paths
         for (Pair segment : mFrequencies.keySet()) {
-            float freq = mFrequencies.get(segment) / (mTotalPaths + 0.0f);
+            float freq = mFrequencies.get(segment).mNumOverlap / (mTotalPaths + 0.0f);
             System.out.println("freq = " + freq + "\ttotal paths = " + mTotalPaths);
             createPolyline(new ArrayList<LatLong>(Arrays.asList(segment.mDota, segment.mDotb)),
                             getHeatMapColor(freq), 6.0f);
         }
+        // draw the dots
+        for (LatLong key : mDots.keySet()) {
+            createDot(key, mDots.get(key), 13.0f);
+        }
     }
 
     /////// Helper Functions ///////
+
+    private int getHeatMapColor(float value) {
+        int color[][] = {{6, 0, 133, 255}, {255, 255, 0}};
+        int color2[][] = {{255, 255, 0}, {255, 14, 29, 255}};
+        int r, g, b;
+        if (value < THRESHOLD) {
+            value *= 10.0f / (THRESHOLD * 10);
+            r = (int)((color[1][0] - color[0][0]) * value + color[0][0]);
+            g = (int)((color[1][1] - color[0][1]) * value + color[0][1]);
+            b = (int)((color[1][2] - color[0][2]) * value + color[0][2]);
+        } else {
+            value -= THRESHOLD;
+            value *= 10.0f / ((1 - THRESHOLD) * 10);
+            r = (int)((color2[1][0] - color2[0][0]) * value + color2[0][0]);
+            g = (int)((color2[1][1] - color2[0][1]) * value + color2[0][1]);
+            b = (int)((color2[1][2] - color2[0][2]) * value + color2[0][2]);
+        }
+//        if (value < 0.25f) {
+//            return new java.awt.Color(6, 0, 133, 255).getRGB();
+//        } else if (value < 0.5f) {
+//            return new java.awt.Color(93, 255, 35, 255).getRGB();
+//        } else if (value < 0.75f) {
+//            return new java.awt.Color(255, 255, 0, 255).getRGB();
+//        } else {
+//            return new java.awt.Color(255, 14, 29, 255).getRGB();
+//        }
+        return new java.awt.Color(r, g, b, 255).getRGB();
+    }
 
     private BoundingBox addLayers(MapView mapView, List<File> mapFiles) {
         Layers layers = mapView.getLayerManager().getLayers();
@@ -322,5 +310,15 @@ public final class MapUI {
         };
         tileRendererLayer.setXmlRenderTheme(InternalRenderTheme.OSMARENDER);
         return tileRendererLayer;
+    }
+
+    private class OverLapCounter {
+        int mNumOverlap;
+        boolean mMain;
+
+        OverLapCounter(boolean onMain) {
+            mMain = onMain;
+            mNumOverlap = 0;
+        }
     }
 }

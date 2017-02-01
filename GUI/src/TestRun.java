@@ -17,7 +17,7 @@ public class TestRun {
     private static GraphHopperOSM mHopper;
     private static MapUI mMapUI;
 
-    private static final LatLong START = new LatLong(40.1093094, -88.2305774);
+    private static final LatLong START = new LatLong(41.8339025, -88.2305774);
     private static final LatLong END   = new LatLong(41.9741032, -87.870702);
     private static final double RADIUS = 0.1;
 
