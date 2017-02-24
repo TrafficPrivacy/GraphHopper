@@ -39,7 +39,8 @@ public class TestRun {
         mMapUI.setMainPath(mainPath.getPoints());
         mMapUI.showUpdate();
         for (int i = 0; i < 100; i++) {
-            PathWrapper path = calcPath(dot_generator(START, RADIUS), dot_generator(END, RADIUS));
+//            PathWrapper path = calcPath(dot_generator(START, RADIUS), dot_generator(END, RADIUS));
+            PathWrapper path = calcPath(dot_generator(START, RADIUS), END);
             try {
                 mMapUI.addPath(path.getPoints());
             } catch (Exception e) {
