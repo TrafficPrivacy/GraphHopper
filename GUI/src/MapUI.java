@@ -18,6 +18,7 @@
 
 import com.graphhopper.PathWrapper;
 import com.graphhopper.util.PointList;
+import com.sun.xml.internal.bind.v2.model.core.MaybeElement;
 import edu.princeton.cs.algs4.In;
 import org.mapsforge.core.graphics.*;
 import org.mapsforge.core.graphics.Color;
@@ -64,6 +65,7 @@ import java.util.List;
 import java.util.prefs.Preferences;
 
 import static java.lang.Math.floor;
+import static java.lang.Math.min;
 
 public final class MapUI {
     private final GraphicFactory GRAPHIC_FACTORY = AwtGraphicFactory.INSTANCE;
@@ -171,6 +173,7 @@ public final class MapUI {
                 mMainPathSet.add(new Pair(prev, curt));
             }
             mMainPath = list;
+            mPaths.add(list);
         }
     }
 
@@ -187,6 +190,10 @@ public final class MapUI {
     public void showUpdate() {
         // draw the paths
         if (mMainPath != null) {
+            for (MyLineLayer myLineLayer : mLayers) {
+                MAP_VIEW.getLayerManager().getLayers().remove(myLineLayer);
+            }
+            mLayers.clear();
             HashSet<Pair> overLapList = null;        // List for the start and end point of the paths
             HashMap<Pair, HashSet<Pair>> otherPaths = new HashMap<Pair, HashSet<Pair>>();
             // convert path to hashset
@@ -198,9 +205,11 @@ public final class MapUI {
                 for (int j = 1; j < path.size(); j++) {
                     curt = path.get(j);
                     set.add(new Pair(prev, curt));
+                    prev = curt;
                 }
                 otherPaths.put(new Pair(path.get(0), path.get(path.size() - 1)), set);
             }
+            System.out.println(otherPaths.size());
             LatLong prev = mMainPath.get(0);
             LatLong curt;
             for (int i = 1; i < mMainPath.size(); i++) {
@@ -215,7 +224,7 @@ public final class MapUI {
                 }
                 list.add(prev);
                 list.add(curt);
-                while (true) {
+                while (overLapList.size() > 0) {
                     i++;
                     if (i >= mMainPath.size()) {
                         break;
@@ -226,31 +235,32 @@ public final class MapUI {
                     int counter = 0;
                     for (Pair key : otherPaths.keySet()) {
                         if (otherPaths.get(key).contains(curPair)) {
-                            counter ++;
-                        } else {
-                            counter = -1;
-                            break;
+                            if (overLapList.contains(key)) {
+                                counter ++;
+                            } else {
+                                counter = -1;
+                                break;
+                            }
                         }
                     }
                     if (counter < 0 || counter != overLapList.size()) {
                         i--;
                         break;
                     }
+                    list.add(curt);
                 }
                 HashMap<LatLong, Integer> dots = new HashMap<LatLong, Integer>();
                 for (Pair p : overLapList) {
                     dots.put(p.mDota, new java.awt.Color(6, 0, 133, 255).getRGB());
+                    dots.put(p.mDotb, new java.awt.Color(6, 0, 133, 255).getRGB());
                 }
                 MyLineLayer myLineLayer = new MyLineLayer(GRAPHIC_FACTORY, dots,
-                        getHeatMapColor(list.size() / (0.0f + mMainPath.size())), 6.0f, list);
+                        getHeatMapColor(overLapList.size() / (0.0f + mPaths.size())), 6.0f, list);
                 MAP_VIEW.getLayerManager().getLayers().add(myLineLayer);
                 MAP_VIEW.getLayerManager().redrawLayers();
-//                mLayers.add(myLineLayer);
+                mLayers.add(myLineLayer);
                 prev = curt;
             }
-//            for (MyLineLayer myLineLayer : mLayers) {
-
-//            }
         }
     }
 
@@ -374,9 +384,26 @@ public final class MapUI {
             System.out.println("mouse clicked at: " + e.getX() + ", " + e.getY());
             LatLong location = mReference.fromPixels(e.getX(), e.getY());
             System.out.println("Geolocation clicked at: " + location.latitude + ", " + location.longitude);
-//            if (test.contains(location)) {
-//                System.out.println("Clicked on path");
-//            }
+            double min_dist = 100.0;
+            MyLineLayer bestLayer = null;
+            for (MyLineLayer myLineLayer : mLayers) {
+                double dist = myLineLayer.contains(location);
+                if (dist > 0 && dist < min_dist) {
+                    min_dist = dist;
+                    bestLayer = myLineLayer;
+                }
+            }
+            if (bestLayer == null) {
+                for (MyLineLayer myLineLayer : mLayers) {
+                    myLineLayer.setVisible(true);
+                }
+            } else {
+                for (MyLineLayer myLineLayer : mLayers) {
+                    myLineLayer.setVisible(false);
+                }
+                bestLayer.setVisible(true);
+            }
+            MAP_VIEW.getLayerManager().redrawLayers();
         }
     }
 
@@ -431,14 +458,15 @@ public final class MapUI {
             }
         }
 
-        public boolean contains(LatLong point) {
+        public double contains(LatLong point) {
             double threshold = 0.01;
             for (LatLong dot : mPath) {
-                if (point.distance(dot) < threshold) {
-                    return true;
+                double dist = point.distance(dot);
+                if (dist < threshold) {
+                    return dist;
                 }
             }
-            return false;
+            return -1.0;
         }
     }
 }
