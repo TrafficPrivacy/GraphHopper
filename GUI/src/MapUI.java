@@ -82,6 +82,9 @@ public final class MapUI {
     private int mTotalPaths;
     private int mMainPathLength;
 
+
+    private MyLineLayer test;
+
     private final float THRESHOLD = 0.8f;
 
     public MapUI(String mapFileLocation, String windowTitle) {
@@ -101,12 +104,8 @@ public final class MapUI {
 
         FRAME = new JFrame();
         PANE  = new JLayeredPane();
-//        PANE.add(MAP_VIEW, 0);
 
-//        JLabel test = new JLabel("hello");
-
-//        PANE.add(test, 1);
-
+        MAP_VIEW.addMouseListener(new MouseEvent());
         FRAME.setTitle(windowTitle);
         FRAME.add(MAP_VIEW);
         FRAME.pack();
@@ -184,6 +183,20 @@ public final class MapUI {
             mDots.put(new LatLong(path.getLat(path.size() - 1), path.getLon(path.size() - 1)), new java.awt.Color(0, 0, 0, 255).getRGB());
             mMainPathLength = mFrequencies.size();
         }
+
+        //////// Test ////////
+        ArrayList<LatLong> list = new ArrayList<LatLong>();
+        HashMap<LatLong, Integer> dotWithColor = new HashMap<LatLong, Integer>();
+        for (int i = 0; i < path.size(); i++) {
+            LatLong curt = new LatLong(path.getLat(i), path.getLon(i));
+            list.add(curt);
+        }
+        dotWithColor.put(new LatLong(path.getLat(0), path.getLon(0)), new java.awt.Color(255, 14, 29, 255).getRGB());
+        dotWithColor.put(new LatLong(path.getLat(path.size() - 1), path.getLon(path.size() - 1)), new java.awt.Color(0, 0, 0, 255).getRGB());
+        test = new MyLineLayer(GRAPHIC_FACTORY, dotWithColor, new java.awt.Color(6, 0, 133, 255).getRGB(),
+                                    6.0f, list);
+        MAP_VIEW.getLayerManager().getLayers().add(test);
+        MAP_VIEW.getLayerManager().redrawLayers();
     }
 
     public void addPath(PointList path) {
@@ -211,16 +224,17 @@ public final class MapUI {
 
     public void showUpdate() {
         // draw the paths
-        for (Pair segment : mFrequencies.keySet()) {
-            float freq = mFrequencies.get(segment).mNumOverlap / (mTotalPaths + 0.0f);
-            System.out.println("freq = " + freq + "\ttotal paths = " + mTotalPaths);
-            createPolyline(new ArrayList<LatLong>(Arrays.asList(segment.mDota, segment.mDotb)),
-                            getHeatMapColor(freq), 6.0f);
-        }
-        // draw the dots
-        for (LatLong key : mDots.keySet()) {
-            createDot(key, mDots.get(key), 13.0f);
-        }
+//        for (Pair segment : mFrequencies.keySet()) {
+//            float freq = mFrequencies.get(segment).mNumOverlap / (mTotalPaths + 0.0f);
+//            System.out.println("freq = " + freq + "\ttotal paths = " + mTotalPaths);
+//            createPolyline(new ArrayList<LatLong>(Arrays.asList(segment.mDota, segment.mDotb)),
+//                            getHeatMapColor(freq), 6.0f);
+//        }
+//        // draw the dots
+//        for (LatLong key : mDots.keySet()) {
+//            createDot(key, mDots.get(key), 13.0f);
+//        }
+
     }
 
     /////// Helper Functions ///////
@@ -352,6 +366,9 @@ public final class MapUI {
             System.out.println("mouse clicked at: " + e.getX() + ", " + e.getY());
             LatLong location = mReference.fromPixels(e.getX(), e.getY());
             System.out.println("Geolocation clicked at: " + location.latitude + ", " + location.longitude);
+            if (test.contains(location)) {
+                System.out.println("Clicked on path");
+            }
         }
     }
 
@@ -400,12 +417,18 @@ public final class MapUI {
                 Paint paintStroke = GRAPHIC_FACTORY.createPaint();
                 paintStroke.setStyle(Style.STROKE);
                 paintStroke.setColor(mDots.get(latLong));
-                paintStroke.setStrokeWidth(13.0f);
-                canvas.drawCircle(pixelX, pixelY, 100, paintStroke);
+                paintStroke.setStrokeWidth(6.0f);
+                canvas.drawCircle(pixelX, pixelY, 3, paintStroke);
             }
         }
 
-        public boolean lookUp(LatLong point) {
+        public boolean contains(LatLong point) {
+            double threshold = 0.01;
+            for (LatLong dot : mPath) {
+                if (point.distance(dot) < threshold) {
+                    return true;
+                }
+            }
             return false;
         }
     }
