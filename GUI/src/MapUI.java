@@ -19,15 +19,15 @@
 import com.graphhopper.PathWrapper;
 import com.graphhopper.util.PointList;
 import edu.princeton.cs.algs4.In;
+import org.mapsforge.core.graphics.*;
 import org.mapsforge.core.graphics.Color;
-import org.mapsforge.core.graphics.GraphicFactory;
 import org.mapsforge.core.graphics.Paint;
-import org.mapsforge.core.graphics.Style;
 import org.mapsforge.core.model.BoundingBox;
 import org.mapsforge.core.model.LatLong;
 import org.mapsforge.core.model.MapPosition;
 import org.mapsforge.core.model.Point;
 import org.mapsforge.core.util.LatLongUtils;
+import org.mapsforge.core.util.MercatorProjection;
 import org.mapsforge.map.awt.graphics.AwtGraphicFactory;
 import org.mapsforge.map.awt.util.JavaPreferences;
 import org.mapsforge.map.awt.view.MapView;
@@ -51,9 +51,11 @@ import org.mapsforge.map.model.common.PreferencesFacade;
 import org.mapsforge.map.reader.MapFile;
 import org.mapsforge.map.reader.ReadBuffer;
 import org.mapsforge.map.rendertheme.InternalRenderTheme;
+import org.mapsforge.map.util.MapViewProjection;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.MouseListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -319,6 +321,92 @@ public final class MapUI {
         OverLapCounter(boolean onMain) {
             mMain = onMain;
             mNumOverlap = 0;
+        }
+    }
+
+    private class MouseEvent implements MouseListener {
+
+        private MapViewProjection mReference;
+
+        MouseEvent() {
+            mReference = new MapViewProjection(MAP_VIEW);
+        }
+
+        public void mousePressed(java.awt.event.MouseEvent e) {
+
+        }
+
+        public void mouseReleased(java.awt.event.MouseEvent e) {
+
+        }
+
+        public void mouseEntered(java.awt.event.MouseEvent e) {
+
+        }
+
+        public void mouseExited(java.awt.event.MouseEvent e) {
+
+        }
+
+        public void mouseClicked(java.awt.event.MouseEvent e) {
+            System.out.println("mouse clicked at: " + e.getX() + ", " + e.getY());
+            LatLong location = mReference.fromPixels(e.getX(), e.getY());
+            System.out.println("Geolocation clicked at: " + location.latitude + ", " + location.longitude);
+        }
+    }
+
+    private class MyLineLayer extends Polyline {
+        private HashMap<LatLong, Integer> mDots;
+        private List<LatLong> mPath;
+        private GraphicFactory mGraphicFactory;
+
+        /**
+         *
+         * @param pathPaint Paint for the path. Not for dots
+         * @param graphicFactory
+         * @param dotWithColor
+         * @param path
+         */
+        public MyLineLayer(Paint pathPaint, GraphicFactory graphicFactory, HashMap<LatLong, Integer> dotWithColor,
+                           List<LatLong> path) {
+            super(pathPaint, graphicFactory);
+            mDots = dotWithColor;
+            mGraphicFactory = graphicFactory;
+            mPath = path;
+            super.getLatLongs().addAll(mPath);
+        }
+
+        public MyLineLayer(GraphicFactory graphicFactory, HashMap<LatLong, Integer> dotWithColor, int pathcolor,
+                           float pathstrokeWidth, List<LatLong> path) {
+            super(null, graphicFactory);
+            Paint paintStroke = GRAPHIC_FACTORY.createPaint();
+            paintStroke.setStyle(Style.STROKE);
+            paintStroke.setColor(pathcolor);
+            paintStroke.setStrokeWidth(pathstrokeWidth);
+            this.setPaintStroke(paintStroke);
+            mDots = dotWithColor;
+            mGraphicFactory = graphicFactory;
+            mPath = path;
+            super.getLatLongs().addAll(mPath);
+        }
+        @Override
+        public synchronized void draw(BoundingBox boundingBox, byte zoomLevel, org.mapsforge.core.graphics.Canvas canvas, Point topLeftPoint) {
+            super.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
+            long mapSize = MercatorProjection.getMapSize(zoomLevel, displayModel.getTileSize());
+            /** Draw the points **/
+            for (LatLong latLong : mDots.keySet()) {
+                int pixelX = (int) (MercatorProjection.longitudeToPixelX(latLong.longitude, mapSize) - topLeftPoint.x);
+                int pixelY = (int) (MercatorProjection.latitudeToPixelY(latLong.latitude, mapSize) - topLeftPoint.y);
+                Paint paintStroke = GRAPHIC_FACTORY.createPaint();
+                paintStroke.setStyle(Style.STROKE);
+                paintStroke.setColor(mDots.get(latLong));
+                paintStroke.setStrokeWidth(13.0f);
+                canvas.drawCircle(pixelX, pixelY, 100, paintStroke);
+            }
+        }
+
+        public boolean lookUp(LatLong point) {
+            return false;
         }
     }
 }
