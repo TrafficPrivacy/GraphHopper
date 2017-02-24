@@ -59,9 +59,7 @@ import java.awt.event.MouseListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
+import java.util.*;
 import java.util.List;
 import java.util.prefs.Preferences;
 
@@ -72,18 +70,12 @@ public final class MapUI {
     private final boolean SHOW_DEBUG_LAYERS = false;
 
     private final MapView MAP_VIEW;
-
     private final JFrame FRAME;
 
-    private final JLayeredPane PANE;
-
-    private HashMap<Pair, OverLapCounter> mFrequencies;
-    private HashMap<LatLong, Integer> mDots;
-    private int mTotalPaths;
-    private int mMainPathLength;
-
-
-    private MyLineLayer test;
+    private List<MyLineLayer> mLayers;
+    private List<ArrayList<LatLong>> mPaths;
+    private HashSet<Pair> mMainPathSet;
+    private List<LatLong> mMainPath;
 
     private final float THRESHOLD = 0.8f;
 
@@ -103,7 +95,6 @@ public final class MapUI {
         final PreferencesFacade preferencesFacade = new JavaPreferences(Preferences.userNodeForPackage(MapUI.class));
 
         FRAME = new JFrame();
-        PANE  = new JLayeredPane();
 
         MAP_VIEW.addMouseListener(new MouseEvent());
         FRAME.setTitle(windowTitle);
@@ -129,10 +120,9 @@ public final class MapUI {
                 model.mapViewPosition.setMapPosition(new MapPosition(boundingBox.getCenterPoint(), zoomLevel));
             }
         });
-        mFrequencies = new HashMap<Pair, OverLapCounter>();
-        mDots = new HashMap<LatLong, Integer>();
-        mTotalPaths  = 0;
-        mMainPathLength = 1;
+        mPaths = new ArrayList<ArrayList<LatLong>>();
+        mMainPathSet = new HashSet<Pair>();
+        mLayers = new ArrayList<MyLineLayer>();
     }
 
     public void setVisible(boolean visible) {
@@ -171,70 +161,97 @@ public final class MapUI {
 
     public void setMainPath(PointList path) {
         if (path.size() > 0) {
+            ArrayList<LatLong> list = new ArrayList<LatLong>();
             LatLong prev = new LatLong(path.getLat(0), path.getLon(0));
             LatLong curt;
+            list.add(prev);
             for (int i = 1; i < path.size(); i++) {
                 curt = new LatLong(path.getLat(i), path.getLon(i));
-                mFrequencies.put(new Pair(prev, curt), new OverLapCounter(true));
-                prev = curt;
+                list.add(curt);
+                mMainPathSet.add(new Pair(prev, curt));
             }
-            mTotalPaths ++;
-            mDots.put(new LatLong(path.getLat(0), path.getLon(0)), new java.awt.Color(0, 0, 0, 255).getRGB());
-            mDots.put(new LatLong(path.getLat(path.size() - 1), path.getLon(path.size() - 1)), new java.awt.Color(0, 0, 0, 255).getRGB());
-            mMainPathLength = mFrequencies.size();
+            mMainPath = list;
         }
-
-        //////// Test ////////
-        ArrayList<LatLong> list = new ArrayList<LatLong>();
-        HashMap<LatLong, Integer> dotWithColor = new HashMap<LatLong, Integer>();
-        for (int i = 0; i < path.size(); i++) {
-            LatLong curt = new LatLong(path.getLat(i), path.getLon(i));
-            list.add(curt);
-        }
-        dotWithColor.put(new LatLong(path.getLat(0), path.getLon(0)), new java.awt.Color(255, 14, 29, 255).getRGB());
-        dotWithColor.put(new LatLong(path.getLat(path.size() - 1), path.getLon(path.size() - 1)), new java.awt.Color(0, 0, 0, 255).getRGB());
-        test = new MyLineLayer(GRAPHIC_FACTORY, dotWithColor, new java.awt.Color(6, 0, 133, 255).getRGB(),
-                                    6.0f, list);
-        MAP_VIEW.getLayerManager().getLayers().add(test);
-        MAP_VIEW.getLayerManager().redrawLayers();
     }
 
     public void addPath(PointList path) {
         if (path.size() > 0) {
-            LatLong prev = new LatLong(path.getLat(0), path.getLon(0));
-            LatLong curt;
-            int num_overlap = 0;
-            for (int i = 1; i < path.size(); i++) {
-                curt = new LatLong(path.getLat(i), path.getLon(i));
-                Pair pair = new Pair(prev, curt);
-                if (mFrequencies.containsKey(pair)) {
-                    mFrequencies.get(pair).mNumOverlap += 1;
-                    if (mFrequencies.get(pair).mMain)
-                        num_overlap ++;
-                } else {
-                    mFrequencies.put(pair, new OverLapCounter(false));
-                }
-                prev = curt;
+            ArrayList<LatLong> list = new ArrayList<LatLong>();
+            for (int i = 0; i < path.size(); i++) {
+                list.add(new LatLong(path.getLat(i), path.getLon(i)));
             }
-            mTotalPaths ++;
-            mDots.put(new LatLong(path.getLat(0), path.getLon(0)), getHeatMapColor((0.0f + num_overlap) / mMainPathLength));
-            mDots.put(new LatLong(path.getLat(path.size() - 1), path.getLon(path.size() - 1)), getHeatMapColor((0.0f + num_overlap) / mMainPathLength));
+            mPaths.add(list);
         }
     }
 
     public void showUpdate() {
         // draw the paths
-//        for (Pair segment : mFrequencies.keySet()) {
-//            float freq = mFrequencies.get(segment).mNumOverlap / (mTotalPaths + 0.0f);
-//            System.out.println("freq = " + freq + "\ttotal paths = " + mTotalPaths);
-//            createPolyline(new ArrayList<LatLong>(Arrays.asList(segment.mDota, segment.mDotb)),
-//                            getHeatMapColor(freq), 6.0f);
-//        }
-//        // draw the dots
-//        for (LatLong key : mDots.keySet()) {
-//            createDot(key, mDots.get(key), 13.0f);
-//        }
+        if (mMainPath != null) {
+            HashSet<Pair> overLapList = null;        // List for the start and end point of the paths
+            HashMap<Pair, HashSet<Pair>> otherPaths = new HashMap<Pair, HashSet<Pair>>();
+            // convert path to hashset
+            for (int i = 0; i < mPaths.size(); i++) {
+                List<LatLong> path = mPaths.get(i);
+                LatLong prev = path.get(0);
+                LatLong curt;
+                HashSet<Pair> set = new HashSet<Pair>();
+                for (int j = 1; j < path.size(); j++) {
+                    curt = path.get(j);
+                    set.add(new Pair(prev, curt));
+                }
+                otherPaths.put(new Pair(path.get(0), path.get(path.size() - 1)), set);
+            }
+            LatLong prev = mMainPath.get(0);
+            LatLong curt;
+            for (int i = 1; i < mMainPath.size(); i++) {
+                curt = mMainPath.get(i);
+                overLapList = new HashSet<Pair>();
+                Pair curPair = new Pair(prev, curt);
+                List<LatLong> list = new ArrayList<LatLong>();
+                for (Pair key : otherPaths.keySet()) {
+                    if (otherPaths.get(key).contains(curPair)) {
+                        overLapList.add(key);
+                    }
+                }
+                list.add(prev);
+                list.add(curt);
+                while (true) {
+                    i++;
+                    if (i >= mMainPath.size()) {
+                        break;
+                    }
+                    prev = curt;
+                    curt = mMainPath.get(i);
+                    curPair = new Pair(prev, curt);
+                    int counter = 0;
+                    for (Pair key : otherPaths.keySet()) {
+                        if (otherPaths.get(key).contains(curPair)) {
+                            counter ++;
+                        } else {
+                            counter = -1;
+                            break;
+                        }
+                    }
+                    if (counter < 0 || counter != overLapList.size()) {
+                        i--;
+                        break;
+                    }
+                }
+                HashMap<LatLong, Integer> dots = new HashMap<LatLong, Integer>();
+                for (Pair p : overLapList) {
+                    dots.put(p.mDota, new java.awt.Color(6, 0, 133, 255).getRGB());
+                }
+                MyLineLayer myLineLayer = new MyLineLayer(GRAPHIC_FACTORY, dots,
+                        getHeatMapColor(list.size() / (0.0f + mMainPath.size())), 6.0f, list);
+                MAP_VIEW.getLayerManager().getLayers().add(myLineLayer);
+                MAP_VIEW.getLayerManager().redrawLayers();
+//                mLayers.add(myLineLayer);
+                prev = curt;
+            }
+//            for (MyLineLayer myLineLayer : mLayers) {
 
+//            }
+        }
     }
 
     /////// Helper Functions ///////
@@ -255,15 +272,6 @@ public final class MapUI {
             g = (int)((color2[1][1] - color2[0][1]) * value + color2[0][1]);
             b = (int)((color2[1][2] - color2[0][2]) * value + color2[0][2]);
         }
-//        if (value < 0.25f) {
-//            return new java.awt.Color(6, 0, 133, 255).getRGB();
-//        } else if (value < 0.5f) {
-//            return new java.awt.Color(93, 255, 35, 255).getRGB();
-//        } else if (value < 0.75f) {
-//            return new java.awt.Color(255, 255, 0, 255).getRGB();
-//        } else {
-//            return new java.awt.Color(255, 14, 29, 255).getRGB();
-//        }
         return new java.awt.Color(r, g, b, 255).getRGB();
     }
 
@@ -366,9 +374,9 @@ public final class MapUI {
             System.out.println("mouse clicked at: " + e.getX() + ", " + e.getY());
             LatLong location = mReference.fromPixels(e.getX(), e.getY());
             System.out.println("Geolocation clicked at: " + location.latitude + ", " + location.longitude);
-            if (test.contains(location)) {
-                System.out.println("Clicked on path");
-            }
+//            if (test.contains(location)) {
+//                System.out.println("Clicked on path");
+//            }
         }
     }
 
@@ -406,6 +414,7 @@ public final class MapUI {
             mPath = path;
             super.getLatLongs().addAll(mPath);
         }
+
         @Override
         public synchronized void draw(BoundingBox boundingBox, byte zoomLevel, org.mapsforge.core.graphics.Canvas canvas, Point topLeftPoint) {
             super.draw(boundingBox, zoomLevel, canvas, topLeftPoint);
