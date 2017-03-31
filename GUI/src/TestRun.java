@@ -17,8 +17,8 @@ public class TestRun {
     private static GraphHopperOSM mHopper;
     private static MapUI mMapUI;
 
-    private static final LatLong START = new LatLong(41.8339025, -88.2305774);
-    private static final LatLong END   = new LatLong(41.9741032, -87.870702);
+    private static final LatLong START = new LatLong(42.119617324466994,-88.10600282158704);
+    private static final LatLong END   = new LatLong(41.705728515237524,-87.88696294650438);
     private static final double RADIUS = 0.1;
 
     /**
@@ -39,8 +39,9 @@ public class TestRun {
         mMapUI.setMainPath(mainPath.getPoints());
         mMapUI.showUpdate();
         for (int i = 0; i < 100; i++) {
-//            PathWrapper path = calcPath(dot_generator(START, RADIUS), dot_generator(END, RADIUS));
-            PathWrapper path = calcPath(dot_generator(START, RADIUS), END);
+            PathWrapper path = calcPath(dot_generator(START, RADIUS), dot_generator(END, RADIUS));
+//            PathWrapper path = calcPath(dot_generator(START, RADIUS), END);
+//            PathWrapper path = calcPath(START, END);
             try {
                 mMapUI.addPath(path.getPoints());
             } catch (Exception e) {

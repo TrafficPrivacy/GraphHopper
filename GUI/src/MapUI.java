@@ -203,6 +203,7 @@ public final class MapUI {
                 LatLong curt;
                 HashSet<Pair> set = new HashSet<Pair>();
                 for (int j = 1; j < path.size(); j++) {
+//                    createDot(path.get(j), new java.awt.Color(6, 0, 133, 255).getRGB(), 6.0f);
                     curt = path.get(j);
                     set.add(new Pair(prev, curt));
                     prev = curt;
@@ -254,11 +255,13 @@ public final class MapUI {
                     dots.put(p.mDota, new java.awt.Color(6, 0, 133, 255).getRGB());
                     dots.put(p.mDotb, new java.awt.Color(6, 0, 133, 255).getRGB());
                 }
-                MyLineLayer myLineLayer = new MyLineLayer(GRAPHIC_FACTORY, dots,
-                        getHeatMapColor(overLapList.size() / (0.0f + mPaths.size())), 6.0f, list);
-                MAP_VIEW.getLayerManager().getLayers().add(myLineLayer);
-                MAP_VIEW.getLayerManager().redrawLayers();
-                mLayers.add(myLineLayer);
+                if (overLapList.size() > 1) {
+                    MyLineLayer myLineLayer = new MyLineLayer(GRAPHIC_FACTORY, dots,
+                            getHeatMapColor(overLapList.size() / (0.0f + mPaths.size())), 6.0f, list);
+                    MAP_VIEW.getLayerManager().getLayers().add(myLineLayer);
+                    MAP_VIEW.getLayerManager().redrawLayers();
+                    mLayers.add(myLineLayer);
+                }
                 prev = curt;
             }
         }
