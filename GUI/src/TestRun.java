@@ -7,6 +7,7 @@ import com.graphhopper.util.Parameters;
 import org.mapsforge.core.model.LatLong;
 
 import java.awt.*;
+import java.util.ArrayList;
 
 /**
  * Created by zonglin on 1/25/17.
@@ -38,14 +39,30 @@ public class TestRun {
         PathWrapper mainPath = calcPath(START, END);
         mMapUI.setMainPath(mainPath.getPoints());
         mMapUI.showUpdate();
+        ArrayList<LatLong> sources = new ArrayList<LatLong>();
+        ArrayList<LatLong> targets = new ArrayList<LatLong>();
+//        for (int i = 0; i < 100; i++) {
+//            PathWrapper path = calcPath(dot_generator(START, RADIUS), dot_generator(END, RADIUS));
+////            PathWrapper path = calcPath(dot_generator(START, RADIUS), END);
+////            PathWrapper path = calcPath(START, END);
+//            try {
+//                mMapUI.addPath(path.getPoints());
+//            } catch (Exception e) {
+//                continue;
+//            }
+//        }
         for (int i = 0; i < 100; i++) {
-            PathWrapper path = calcPath(dot_generator(START, RADIUS), dot_generator(END, RADIUS));
-//            PathWrapper path = calcPath(dot_generator(START, RADIUS), END);
-//            PathWrapper path = calcPath(START, END);
-            try {
-                mMapUI.addPath(path.getPoints());
-            } catch (Exception e) {
-                continue;
+            sources.add(dot_generator(START, RADIUS));
+            targets.add(dot_generator(END, RADIUS));
+        }
+        for (LatLong source : sources) {
+            for (LatLong target : targets) {
+                PathWrapper path = calcPath(source, target);
+                try {
+                    mMapUI.addPath(path.getPoints());
+                } catch (Exception e) {
+                    continue;
+                }
             }
         }
         mMapUI.showUpdate();
