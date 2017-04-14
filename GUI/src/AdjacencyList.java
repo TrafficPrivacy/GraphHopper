@@ -48,4 +48,8 @@ public class AdjacencyList<Node>{
     public boolean hasNode(Node n) {
         return mTable.containsKey(n);
     }
+
+    public ArrayList<Node> getNodes() {
+        return new ArrayList<Node>(mTable.keySet());
+    }
 }

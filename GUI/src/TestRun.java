@@ -3,7 +3,9 @@ import com.graphhopper.GHResponse;
 import com.graphhopper.PathWrapper;
 import com.graphhopper.reader.osm.GraphHopperOSM;
 import com.graphhopper.routing.util.EncodingManager;
+import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.util.Parameters;
+import org.lwjgl.Sys;
 import org.mapsforge.core.model.LatLong;
 
 import java.awt.*;
@@ -17,10 +19,11 @@ public class TestRun {
     private static PathWrapper mResult;
     private static GraphHopperOSM mHopper;
     private static MapUI mMapUI;
+    private static Surroundings mSurroundings;
 
-    private static final LatLong START = new LatLong(42.119617324466994,-88.10600282158704);
-    private static final LatLong END   = new LatLong(41.705728515237524,-87.88696294650438);
-    private static final double RADIUS = 0.1;
+    private static final LatLong START = new LatLong(40.11444559263916,-88.23074340994938);
+    private static final LatLong END   = new LatLong(41.87518511853951,-87.67135621514173);
+    private static final double RADIUS = 1000;  // in meters
 
     /**
      * First argument is .osm data location. Second is the .map data location. Third is the graphhopper
@@ -28,46 +31,65 @@ public class TestRun {
      * @param args
      */
     public static void main(String args[]) {
+        EncodingManager em = new EncodingManager("car");
         mHopper = new GraphHopperOSM();
         mHopper.setOSMFile(args[0]);
         mHopper.forDesktop();
         mHopper.setGraphHopperLocation(args[2]);
-        mHopper.setEncodingManager(new EncodingManager("car"));
+        mHopper.setEncodingManager(em);
         mHopper.importOrLoad();
         mMapUI = new MapUI(args[1], "test");
         mMapUI.setVisible(true);
         PathWrapper mainPath = calcPath(START, END);
         mMapUI.setMainPath(mainPath.getPoints());
         mMapUI.showUpdate();
-        ArrayList<LatLong> sources = new ArrayList<LatLong>();
-        ArrayList<LatLong> targets = new ArrayList<LatLong>();
-//        for (int i = 0; i < 100; i++) {
-//            PathWrapper path = calcPath(dot_generator(START, RADIUS), dot_generator(END, RADIUS));
-////            PathWrapper path = calcPath(dot_generator(START, RADIUS), END);
-////            PathWrapper path = calcPath(START, END);
-//            try {
-//                mMapUI.addPath(path.getPoints());
-//            } catch (Exception e) {
-//                continue;
-//            }
+        mSurroundings = new Surroundings(mHopper.getGraphHopperStorage(), mHopper.getLocationIndex(), em.getEncoder("car"));
+        ArrayList<LatLong> sources = surrounding(START, RADIUS);
+        ArrayList<LatLong> targets = surrounding(END, RADIUS);
+        System.out.println("source size = " + sources.size());
+        System.out.println("target size = " + targets.size());
+
+        // for test
+//        for (LatLong dot : sources) {
+//            mMapUI.createDot(dot, new java.awt.Color(6, 0, 133, 255).getRGB(), 6);
 //        }
-        for (int i = 0; i < 100; i++) {
-            sources.add(dot_generator(START, RADIUS));
-            targets.add(dot_generator(END, RADIUS));
-        }
-        for (LatLong source : sources) {
-            for (LatLong target : targets) {
-                PathWrapper path = calcPath(source, target);
-                try {
-                    mMapUI.addPath(path.getPoints());
-                } catch (Exception e) {
-                    continue;
-                }
+//
+//        for (LatLong dot : targets) {
+//            mMapUI.createDot(dot, new java.awt.Color(6, 0, 133, 255).getRGB(), 6);
+//        }
+
+        for (int i = 0; i < (sources.size() > targets.size() ? targets.size() : sources.size()); i++) {
+//            PathWrapper path = calcPath(dot_generator(START, RADIUS), dot_generator(END, RADIUS));
+//            PathWrapper path = calcPath(dot_generator(START, RADIUS), END);
+//            PathWrapper path = calcPath(START, END);
+            PathWrapper path = calcPath(sources.get(i), targets.get(i));
+            try {
+                mMapUI.addPath(path.getPoints());
+            } catch (Exception e) {
+                continue;
             }
         }
+
+
+//        for (int i = 0; i < 100; i++) {
+//            sources.add(dot_generator(START, RADIUS));
+//            targets.add(dot_generator(END, RADIUS));
+//        }
+//        for (LatLong source : sources) {
+//            for (LatLong target : targets) {
+//                PathWrapper path = calcPath(source, target);
+//                try {
+//                    mMapUI.addPath(path.getPoints());
+//                } catch (Exception e) {
+//                    continue;
+//                }
+//            }
+//        }
+
+
         mMapUI.showUpdate();
-        mMapUI.createCircle(START, Color.LIGHT_GRAY.getRGB(), 10000.0f);
-        mMapUI.createCircle(END, Color.LIGHT_GRAY.getRGB(), 10000.0f);
+        mMapUI.createCircle(START, Color.LIGHT_GRAY.getRGB(), (float) RADIUS);
+        mMapUI.createCircle(END, Color.LIGHT_GRAY.getRGB(), (float) RADIUS);
     }
 
     public static PathWrapper calcPath(LatLong from, LatLong to) {
@@ -91,6 +113,11 @@ public class TestRun {
         LatLong result = new LatLong(origin.latitude + radii * Math.sin(angle) / 2,
                 origin.longitude + radii * Math.cos(angle));
         return result;
+    }
+
+    private static ArrayList<LatLong> surrounding(LatLong origin, double distance) {
+        AdjacencyList tree = mSurroundings.getSurrounding(origin.latitude, origin.longitude, distance);
+        return tree.getNodes();
     }
 
 }

@@ -1,12 +1,10 @@
 import com.graphhopper.routing.QueryGraph;
-import com.graphhopper.routing.util.CarFlagEncoder;
 import com.graphhopper.routing.util.DefaultEdgeFilter;
 import com.graphhopper.routing.util.EdgeFilter;
 import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.routing.weighting.ShortestWeighting;
 import com.graphhopper.routing.weighting.Weighting;
 import com.graphhopper.storage.GraphHopperStorage;
-import com.graphhopper.storage.GraphStorage;
 import com.graphhopper.storage.NodeAccess;
 import com.graphhopper.storage.index.LocationIndex;
 import com.graphhopper.storage.index.QueryResult;
@@ -14,12 +12,10 @@ import com.graphhopper.util.EdgeExplorer;
 import com.graphhopper.util.EdgeIterator;
 import org.mapsforge.core.model.LatLong;
 
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.PriorityQueue;
 
 public class Surroundings {
-    private GraphStorage mGStore;
     private GraphHopperStorage mGhStore;
     private LocationIndex mIndex;
     private FlagEncoder mEncoder;
@@ -29,12 +25,10 @@ public class Surroundings {
     private EdgeExplorer mInEdgeExplorer;
     private EdgeExplorer mOutEdgeExplorer;
 
-    public Surroundings(GraphStorage gStore, GraphHopperStorage ghStore, LocationIndex index) {
-        mGStore = gStore;
+    public Surroundings(GraphHopperStorage ghStore, LocationIndex index, FlagEncoder encoder) {
         mGhStore = ghStore;
         mIndex = index;
-        mEncoder = new CarFlagEncoder();
-        mQueryGraph = new QueryGraph(ghStore);
+        mEncoder = encoder;
         mWeighting = new ShortestWeighting(mEncoder);
         mOutEdgeExplorer = ghStore.createEdgeExplorer(new DefaultEdgeFilter(mEncoder, false, true));
         mInEdgeExplorer = ghStore.createEdgeExplorer(new DefaultEdgeFilter(mEncoder, true, false));
@@ -42,7 +36,7 @@ public class Surroundings {
 
     public AdjacencyList getSurrounding(double latitude, double longitude, double distance) {
         QueryResult closest = mIndex.findClosest(latitude, longitude, EdgeFilter.ALL_EDGES);
-        mQueryGraph.lookup(Arrays.asList(closest));
+        System.out.println("closest ID = " + closest.getClosestNode());
         return DijkstraSSSP(closest.getClosestNode(), distance);
     }
 
@@ -98,11 +92,6 @@ public class Surroundings {
             mNodeID = mID;
             mDistance = distance;
             mParent = parent;
-        }
-
-        public NodeWrapper(int mID, double distance) {
-            mNodeID = mID;
-            mDistance = distance;
         }
 
         public int compareTo(Object o) {

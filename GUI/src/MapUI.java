@@ -74,6 +74,12 @@ public final class MapUI {
     private final MapView MAP_VIEW;
     private final JFrame FRAME;
 
+    // shitty implementation
+    private ArrayList<LatLong> mStarts;
+    private ArrayList<LatLong> mEnds;
+    private List<MyConvexLayer> mSources;
+    private List<MyConvexLayer> mTargets;
+
     private List<MyLineLayer> mLayers;
     private List<ArrayList<LatLong>> mPaths;
     private HashSet<Pair> mMainPathSet;
@@ -125,6 +131,10 @@ public final class MapUI {
         mPaths = new ArrayList<ArrayList<LatLong>>();
         mMainPathSet = new HashSet<Pair>();
         mLayers = new ArrayList<MyLineLayer>();
+        mStarts = new ArrayList<LatLong>();
+        mEnds   = new ArrayList<LatLong>();
+        mSources= new ArrayList<MyConvexLayer>();
+        mTargets= new ArrayList<MyConvexLayer>();
     }
 
     public void setVisible(boolean visible) {
@@ -184,11 +194,21 @@ public final class MapUI {
                 list.add(new LatLong(path.getLat(i), path.getLon(i)));
             }
             mPaths.add(list);
+            // shitty implementation
+            mStarts.add(new LatLong(path.getLat(0), path.getLon(0)));
+            mEnds.add(new LatLong(path.getLat(path.size() - 1), path.getLon(path.size() - 1)));
         }
     }
 
     public void showUpdate() {
         // draw the paths
+        mSources.add(new MyConvexLayer(GRAPHIC_FACTORY,
+                new java.awt.Color(6, 0, 133, 255).getRGB(),
+                6.0f, mStarts));
+        mTargets.add(new MyConvexLayer(GRAPHIC_FACTORY,
+                new java.awt.Color(6, 0, 133, 255).getRGB(),
+                6.0f, mEnds));
+
         if (mMainPath != null) {
             for (MyLineLayer myLineLayer : mLayers) {
                 MAP_VIEW.getLayerManager().getLayers().remove(myLineLayer);
@@ -251,20 +271,69 @@ public final class MapUI {
                     list.add(curt);
                 }
                 HashMap<LatLong, Integer> dots = new HashMap<LatLong, Integer>();
+
+                ArrayList<LatLong> sourceDots = new ArrayList<LatLong>();
+                ArrayList<LatLong> targetDots = new ArrayList<LatLong>();
+
                 for (Pair p : overLapList) {
                     dots.put(p.mDota, new java.awt.Color(6, 0, 133, 255).getRGB());
                     dots.put(p.mDotb, new java.awt.Color(6, 0, 133, 255).getRGB());
+                    sourceDots.add(p.mDota);
+                    targetDots.add(p.mDotb);
                 }
+
                 if (overLapList.size() > 1) {
                     MyLineLayer myLineLayer = new MyLineLayer(GRAPHIC_FACTORY, dots,
-                            getHeatMapColor(overLapList.size() / (0.0f + mPaths.size())), 6.0f, list);
+                            getHeatMapColor(overLapList.size() / (0.0f + mPaths.size())),
+                            6.0f, list);
                     MAP_VIEW.getLayerManager().getLayers().add(myLineLayer);
-                    MAP_VIEW.getLayerManager().redrawLayers();
                     mLayers.add(myLineLayer);
+                    MyConvexLayer newSource = new MyConvexLayer(GRAPHIC_FACTORY,
+                            getHeatMapColor(overLapList.size() / (0.0f + mPaths.size())),
+                            6.0f, sourceDots);
+                    mSources.add(newSource);
+                    MyConvexLayer newTarget = new MyConvexLayer(GRAPHIC_FACTORY,
+                            getHeatMapColor(overLapList.size() / (0.0f + mPaths.size())),
+                            6.0f, targetDots);
+                    mTargets.add(newTarget);
+                    MAP_VIEW.getLayerManager().getLayers().add(newSource);
+                    MAP_VIEW.getLayerManager().getLayers().add(newTarget);
+                    newSource.setVisible(false);
+                    newTarget.setVisible(false);
+                    MAP_VIEW.getLayerManager().redrawLayers();
                 }
                 prev = curt;
             }
         }
+    }
+
+    private ArrayList<LatLong> getConvex(ArrayList<LatLong> dots) {
+        int n = dots.size();
+        if (n < 3)
+            return null;
+        ArrayList<LatLong> convex = new ArrayList<LatLong>();
+        int leftMost = 0;
+        for (int i = 1; i < n; i++) {
+            if (dots.get(i).longitude < dots.get(leftMost).longitude)
+                leftMost = i;
+        }
+        int p = leftMost, q;
+        do {
+            q = (p + 1) % n;
+            for (int i = 0; i < n; i++) {
+                if (convexHelper(dots.get(p), dots.get(i), dots.get(q)))
+                    q = i;
+            }
+            convex.add(dots.get(p));
+            p = q;
+        } while (p != leftMost);
+        convex.add(dots.get(leftMost));
+        return convex;
+    }
+
+    private boolean convexHelper(LatLong p, LatLong q, LatLong r) {
+        double val = (q.latitude - p.latitude) * (r.longitude - q.longitude) - (q.longitude - p.longitude) * (r.latitude - q.latitude);
+        return !(val >= 0);
     }
 
     /////// Helper Functions ///////
@@ -389,24 +458,54 @@ public final class MapUI {
             System.out.println("Geolocation clicked at: " + location.latitude + ", " + location.longitude);
             double min_dist = 100.0;
             MyLineLayer bestLayer = null;
-            for (MyLineLayer myLineLayer : mLayers) {
+            int bestIdx = 0;
+            for (int i = 0; i < mLayers.size(); i++) {
+                MyLineLayer myLineLayer = mLayers.get(i);
                 double dist = myLineLayer.contains(location);
                 if (dist > 0 && dist < min_dist) {
                     min_dist = dist;
                     bestLayer = myLineLayer;
+                    bestIdx = i;
                 }
+            }
+            for (MyConvexLayer myConvexLayer : mSources) {
+                myConvexLayer.setVisible(false);
+            }
+            for (MyConvexLayer myConvexLayer : mTargets) {
+                myConvexLayer.setVisible(false);
             }
             if (bestLayer == null) {
                 for (MyLineLayer myLineLayer : mLayers) {
                     myLineLayer.setVisible(true);
                 }
+                mSources.get(1).setVisible(true);
+                mTargets.get(1).setVisible(true);
             } else {
                 for (MyLineLayer myLineLayer : mLayers) {
                     myLineLayer.setVisible(false);
                 }
                 bestLayer.setVisible(true);
+                mSources.get(bestIdx + 2).setVisible(true);
+                mTargets.get(bestIdx + 2).setVisible(true);
             }
             MAP_VIEW.getLayerManager().redrawLayers();
+        }
+    }
+
+    private class MyConvexLayer extends Polyline {
+        public MyConvexLayer(GraphicFactory graphicFactory, int pathcolor,
+                           float pathstrokeWidth, ArrayList<LatLong> dots) {
+            super(null, graphicFactory);
+            Paint paintStroke = GRAPHIC_FACTORY.createPaint();
+            paintStroke.setStyle(Style.STROKE);
+            paintStroke.setColor(pathcolor);
+            paintStroke.setStrokeWidth(pathstrokeWidth);
+            this.setPaintStroke(paintStroke);
+            List<LatLong> convex = getConvex(dots);
+            if (convex != null)
+                super.getLatLongs().addAll(convex);
+            else
+                System.out.println("got null");
         }
     }
 
@@ -422,14 +521,6 @@ public final class MapUI {
          * @param dotWithColor
          * @param path
          */
-        public MyLineLayer(Paint pathPaint, GraphicFactory graphicFactory, HashMap<LatLong, Integer> dotWithColor,
-                           List<LatLong> path) {
-            super(pathPaint, graphicFactory);
-            mDots = dotWithColor;
-            mGraphicFactory = graphicFactory;
-            mPath = path;
-            super.getLatLongs().addAll(mPath);
-        }
 
         public MyLineLayer(GraphicFactory graphicFactory, HashMap<LatLong, Integer> dotWithColor, int pathcolor,
                            float pathstrokeWidth, List<LatLong> path) {
@@ -442,6 +533,7 @@ public final class MapUI {
             mDots = dotWithColor;
             mGraphicFactory = graphicFactory;
             mPath = path;
+
             super.getLatLongs().addAll(mPath);
         }
 
@@ -460,6 +552,8 @@ public final class MapUI {
                 canvas.drawCircle(pixelX, pixelY, 3, paintStroke);
             }
         }
+
+
 
         public double contains(LatLong point) {
             double threshold = 0.01;
