@@ -25,6 +25,12 @@ public class Surroundings {
     private EdgeExplorer mInEdgeExplorer;
     private EdgeExplorer mOutEdgeExplorer;
 
+    /**
+     * The class to find the dots reachable in a certain distance in meters (on the road)
+     * @param ghStore The GraphHopperStorage can be got from GraphHopper
+     * @param index Also can be got from the GraphHopper
+     * @param encoder Can be got from the GraphHopper
+     */
     public Surroundings(GraphHopperStorage ghStore, LocationIndex index, FlagEncoder encoder) {
         mGhStore = ghStore;
         mIndex = index;
@@ -34,6 +40,13 @@ public class Surroundings {
         mInEdgeExplorer = ghStore.createEdgeExplorer(new DefaultEdgeFilter(mEncoder, true, false));
     }
 
+    /**
+     * Get the surrounding around a center in a certain distance in meters
+     * @param latitude
+     * @param longitude
+     * @param distance
+     * @return
+     */
     public AdjacencyList getSurrounding(double latitude, double longitude, double distance) {
         QueryResult closest = mIndex.findClosest(latitude, longitude, EdgeFilter.ALL_EDGES);
         System.out.println("closest ID = " + closest.getClosestNode());

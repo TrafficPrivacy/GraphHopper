@@ -21,8 +21,8 @@ public class TestRun {
     private static MapUI mMapUI;
     private static Surroundings mSurroundings;
 
-    private static final LatLong START = new LatLong(40.11444559263916,-88.23074340994938);
-    private static final LatLong END   = new LatLong(41.87518511853951,-87.67135621514173);
+    private static final LatLong START = new LatLong(40.125341,-88.231544);
+    private static final LatLong END   = new LatLong(40.085689,-88.26519);
     private static final double RADIUS = 1000;  // in meters
 
     /**
@@ -50,25 +50,25 @@ public class TestRun {
         System.out.println("target size = " + targets.size());
 
         // for test
-//        for (LatLong dot : sources) {
-//            mMapUI.createDot(dot, new java.awt.Color(6, 0, 133, 255).getRGB(), 6);
-//        }
-//
-//        for (LatLong dot : targets) {
-//            mMapUI.createDot(dot, new java.awt.Color(6, 0, 133, 255).getRGB(), 6);
-//        }
-
-        for (int i = 0; i < (sources.size() > targets.size() ? targets.size() : sources.size()); i++) {
-//            PathWrapper path = calcPath(dot_generator(START, RADIUS), dot_generator(END, RADIUS));
-//            PathWrapper path = calcPath(dot_generator(START, RADIUS), END);
-//            PathWrapper path = calcPath(START, END);
-            PathWrapper path = calcPath(sources.get(i), targets.get(i));
-            try {
-                mMapUI.addPath(path.getPoints());
-            } catch (Exception e) {
-                continue;
-            }
+        for (LatLong dot : sources) {
+            mMapUI.createDot(dot, new java.awt.Color(6, 0, 133, 255).getRGB(), 6);
         }
+
+        for (LatLong dot : targets) {
+            mMapUI.createDot(dot, new java.awt.Color(6, 0, 133, 255).getRGB(), 6);
+        }
+
+//        for (int i = 0; i < (sources.size() > targets.size() ? targets.size() : sources.size()); i++) {
+////            PathWrapper path = calcPath(dot_generator(START, RADIUS), dot_generator(END, RADIUS));
+////            PathWrapper path = calcPath(dot_generator(START, RADIUS), END);
+////            PathWrapper path = calcPath(START, END);
+//            PathWrapper path = calcPath(sources.get(i), targets.get(i));
+//            try {
+//                mMapUI.addPath(path.getPoints());
+//            } catch (Exception e) {
+//                continue;
+//            }
+//        }
 
 
 //        for (int i = 0; i < 100; i++) {
@@ -81,15 +81,37 @@ public class TestRun {
 //                try {
 //                    mMapUI.addPath(path.getPoints());
 //                } catch (Exception e) {
+//                    System.out.println("exception. No path");
 //                    continue;
 //                }
 //            }
 //        }
 
+        for (int i = 0; i < sources.size(); i++) {
+            for (int j = 0; j < targets.size(); j++) {
+                LatLong source = sources.get(i);
+                LatLong target = targets.get(j);
+                PathWrapper path = calcPath(source, target);
+                try {
+                    mMapUI.addPath(path.getPoints());
+                } catch (Exception e) {
+                    System.out.println("exception. No path");
+                    continue;
+                }
+            }
+        }
+
+        System.out.println("================");
+        System.out.println("Finished routing");
+        System.out.println("================");
 
         mMapUI.showUpdate();
         mMapUI.createCircle(START, Color.LIGHT_GRAY.getRGB(), (float) RADIUS);
         mMapUI.createCircle(END, Color.LIGHT_GRAY.getRGB(), (float) RADIUS);
+
+        System.out.println("================");
+        System.out.println("Finished drawing");
+        System.out.println("================");
     }
 
     public static PathWrapper calcPath(LatLong from, LatLong to) {
