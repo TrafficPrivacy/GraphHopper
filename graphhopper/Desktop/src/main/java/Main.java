@@ -1,6 +1,8 @@
 import com.graphhopper.PathWrapper;
 import com.graphhopper.geohash.SpatialKeyAlgo;
+import com.graphhopper.json.geo.Point;
 import com.graphhopper.util.shapes.GHPoint;
+import com.graphhopper.util.shapes.GHPoint3D;
 import gnu.trove.iterator.TIntIterator;
 import gnu.trove.procedure.TIntProcedure;
 import gnu.trove.set.hash.TIntHashSet;
@@ -86,7 +88,9 @@ public class Main {
         while (u != v) {
             u = (int)next[u][v];
             path.add(u);
+            System.out.print("u: " + u + ", ");
         }
+        System.out.println();
 
         return path;
     }
@@ -137,8 +141,48 @@ public class Main {
         long setgraphtime = System.currentTimeMillis();
 
         ///////////////////////////////////////////////
-        final double queryLat = 40.744695434570313;
-        final double queryLon = -73.980371704101563;
+        //ALGORITHM START
+        //////////////////////////////////////////////
+        double queryLat = 40.744695434570313;
+        double queryLon = -73.980371704101563;
+
+        queryLat = 40.743;
+        queryLon = -73.98;
+
+        double queryLat2 = 40.734695434570313;
+        double queryLon2 =  -73.990371704101563;
+
+        queryLat2 = 40.734;
+        queryLon2 =  -73.99;
+
+        QueryGraph queryGraph = new QueryGraph(ghStorage);
+        RoutingTemplate routingTemplate;
+        Weighting weighting = new ShortestWeighting(encoder);
+        TraversalMode tMode = TraversalMode.EDGE_BASED_2DIR; //TraversalMode.NODE_BASED;
+
+        GHPoint startpoint = new GHPoint(queryLat, queryLon);
+        GHPoint endpoint = new GHPoint(queryLat2, queryLon2);
+        List<GHPoint> points = Arrays.asList(startpoint, endpoint);
+        List<QueryResult> qResults = lookup(points, encoder, locationIndex);
+        queryGraph.lookup(qResults);
+
+        QueryResult fromQResult = qResults.get(0);
+        QueryResult toQResult = qResults.get(1);
+
+        GHPoint3D closestStartPoint = fromQResult.getSnappedPoint();
+        GHPoint3D closestEndPoint = toQResult.getSnappedPoint();
+
+        System.out.println(closestStartPoint);
+        System.out.println(closestEndPoint);
+
+        queryLat = closestStartPoint.getLat();
+        queryLon = closestStartPoint.getLon();
+
+        queryLat2 = closestEndPoint.getLat();
+        queryLon2 = closestEndPoint.getLon();
+
+
+        //////////////
 
         List<GHPoint> circum_points = engine.BFSCircum(queryLat, queryLon, edgeFilter);
 
@@ -210,7 +254,8 @@ public class Main {
                 adj_matrix[end_index][start_index] = adj_edges.get(i).edge_len;
 
                 next_matrix[start_index][end_index] = end_index;
-                next_matrix[end_index][start_index] = start_index;
+
+                //next_matrix[end_index][start_index] = start_index;
 
 
             }
@@ -232,10 +277,12 @@ public class Main {
         for(int i = 0; i < fw_next.length; i++){
             double [] row = fw_next[i];
             for(int j = 0; j < row.length; j++) {
-                ArrayList<Integer> path = Path(i, j, fw_next);
-                if(path.size() > 0) {
-                    System.out.println("Path: " + path.size());
-                }
+                //ArrayList<Integer> path = Path(i, j, fw_next);
+
+                //if(path.size() > 0) {
+                //    System.out.println("Path: " + path);
+                //}
+
             }
         }
 
@@ -258,8 +305,7 @@ public class Main {
 
 
         /////////////////////////////////////////
-        final double queryLat2 = 40.734695434570313;
-        final double queryLon2 =  -73.990371704101563;
+
         List<GHPoint> circum_points2 = engine.BFSCircum(queryLat2, queryLon2, edgeFilter);
 
         //what did i say i was gonna do about the dots?  Find the dots in BFS
@@ -325,7 +371,7 @@ public class Main {
                 //this is important!
                 adj_matrix2[end_index2][start_index2] = adj_edges2.get(i).edge_len;
                 next_matrix2[start_index2][end_index2] = end_index2;
-                next_matrix2[end_index2][start_index2] = start_index2;
+                //next_matrix2[end_index2][start_index2] = start_index2;
 
             }
         }
@@ -370,7 +416,9 @@ public class Main {
         /////////////////////////////////////////
 
 
-        double circum_dist[][] = new double[circum_points.size()][circum_points2.size()];
+        Double circum_dist[][] = new Double[circum_points.size()][circum_points2.size()];
+        Path circum_path[][] = new Path[circum_points.size()][circum_points2.size()];
+
         /*
         QueryGraph queryGraph = new QueryGraph(ghStorage);
         RoutingTemplate routingTemplate;
@@ -387,16 +435,7 @@ public class Main {
          */
 
 
-        QueryGraph queryGraph = new QueryGraph(ghStorage);
-        RoutingTemplate routingTemplate;
-        Weighting weighting = new ShortestWeighting(encoder);
-        TraversalMode tMode = TraversalMode.EDGE_BASED_2DIR; //TraversalMode.NODE_BASED;
 
-        GHPoint startpoint = new GHPoint(40.734695434570313, -73.990371704101563);
-        GHPoint endpoint = new GHPoint(40.735695434570313, -73.995371704101563);
-        List<GHPoint> points = Arrays.asList(startpoint, endpoint);
-        List<QueryResult> qResults = lookup(points, encoder, locationIndex);
-        queryGraph.lookup(qResults);
 
 
         //bmf_algo = new BellmanFord(queryGraph, encoder, weighting, tMode);
@@ -413,23 +452,17 @@ public class Main {
                 RoutingAlgorithm bidir_algo = new DijkstraBidirectionRef(queryGraph, encoder, weighting, tMode);
                 points = Arrays.asList(point1, point2);
                 qResults = lookup(points, encoder, locationIndex);
-                QueryResult fromQResult = qResults.get(0);
-                QueryResult toQResult = qResults.get(1);
+                fromQResult = qResults.get(0);
+                toQResult = qResults.get(1);
                 List<Path> tmpPathList = bidir_algo.calcPaths(fromQResult.getClosestNode(), toQResult.getClosestNode());
 
-                if(tmpPathList.size() > 0){
-                    Path currpath = tmpPathList.get(0);
-                    PointList plist = currpath.calcPoints();
+                Path tmpPath = tmpPathList.get(0);
+                double dist = tmpPath.getDistance();
 
-                    //System.out.println("Distance: " + currpath.getDistance());
-                    //System.out.println("Plist size: " + plist.size());
-
-                }
-
-
-
-                double dist = distCalc.calcDist(point1.getLat(), point1.getLon(), point2.getLat(), point2.getLon());
+                //double dist = distCalc.calcDist(point1.getLat(), point1.getLon(), point2.getLat(), point2.getLon());
                 circum_dist[i][j] = dist;
+                circum_path[i][j] = tmpPath;
+
             }
         }
 
@@ -446,6 +479,7 @@ public class Main {
         ///////////////////////////////////////////////
 
         int final_size = circum_points.size() + circum_points2.size() + 2;
+        System.out.println("final size: " + final_size);
         double final_matrix[][] = new double[final_size][final_size];
 
         for(int i = 0; i < final_size; i++){
@@ -477,7 +511,7 @@ public class Main {
         for(int i = 0; i < circum_points.size(); i++){
             for(int j = 0; j < circum_points2.size(); j++){
                 final_matrix[i][j + circum_points.size()] = circum_dist[i][j];
-                final_matrix[j+ circum_points.size()][i] = circum_dist[i][j];
+                //final_matrix[j+ circum_points.size()][i] = circum_dist[i][j];
 
             }
         }
@@ -487,24 +521,32 @@ public class Main {
         int source_idx = 15;
         int end_idx = 34;
 
+        Hashtable<Integer, GHPoint> bellmanford_hash1 = new Hashtable<Integer, GHPoint>();
+        Hashtable<Integer, GHPoint> bellmanford_hash2 = new Hashtable<Integer, GHPoint>();
+
+
+
 
         for(int i = 0; i < circum_points.size(); i++){
             GHPoint circum_point = circum_points.get(i);
             int circum_idx = hash_points.get(circum_point);
             //System.out.println(circum_idx);
             final_matrix[final_size-2][i] = fw_matrix[source_idx][circum_idx];
-            final_matrix[i][final_size-2] =fw_matrix[source_idx][circum_idx];
+            bellmanford_hash1.put(i, circum_point);
+            //final_matrix[i][final_size-2] =fw_matrix[source_idx][circum_idx];
         }
 
         for(int i = 0; i < circum_points2.size(); i++){
             GHPoint circum_point = circum_points2.get(i);
             int circum_idx = hash_points2.get(circum_point);
             //System.out.println(circum_idx);
-            final_matrix[final_size-1][i + circum_points.size()] = fw_matrix2[end_idx][circum_idx];
+            //final_matrix[final_size-1][i + circum_points.size()] = fw_matrix2[end_idx][circum_idx];
             final_matrix[i + circum_points.size()][final_size-1] = fw_matrix2[end_idx][circum_idx];
+            bellmanford_hash2.put(i, circum_point);
+
 
         }
-
+        /*
         for(int i = 0; i < final_matrix.length; i++){
             double [] row = final_matrix[i];
             for(int j = 0; j < row.length; j++) {
@@ -512,25 +554,116 @@ public class Main {
             }
             System.out.println("\n");
         }
+        */
+        int source = final_size-2;
+        int dest = final_size-1;
 
-        BellmanFord bellmanford = new BellmanFord(final_size-1);
-        BellmanFord.BF_ret bf_ret =bellmanford.BellmanFordEvaluation(final_size-2, final_matrix);
+
+        BellmanFord bellmanford = new BellmanFord(final_size);
+        BellmanFord.BF_ret bf_ret =bellmanford.BellmanFordEvaluation(source, final_matrix);
 
         double [] distances = bf_ret.distances;
         double [] predecessors = bf_ret.predecessors;
 
-        for (int vertex = 1; vertex < distances.length; vertex++) {
-            System.out.println("distance of source  " + (final_size-2) + " to "
+        for (int vertex = 0; vertex < distances.length; vertex++) {
+            System.out.println("distance of source  " + source + " to "
                     + vertex + " is " + distances[vertex]);
         }
+        for (int i = 0; i < predecessors.length; i++) {
+            System.out.print(predecessors[i] + " ");
+        }
+        System.out.println();
 
-        int source = final_size-2;
-        int dest = 44;
+
 
         int counter = 0;
-        for (int vertex = 1; vertex < predecessors.length; vertex++) {
-            System.out.println("predecessor of vertex  " + vertex + " is " + predecessors[vertex]);
+
+        //calc route
+        ArrayList<Double> route = new ArrayList<Double>();
+        route.add((double)dest);
+
+        int temp_dest = dest;
+        while(predecessors[temp_dest] > -1){
+            route.add(predecessors[temp_dest]);
+            temp_dest = (int)predecessors[temp_dest];
         }
+        for(int i = 0; i < route.size(); i ++){
+            double elem = route.get(route.size() - i - 1);
+            System.out.println(elem);
+        }
+
+        /////
+        //Bellman Distance Calc
+        double temp_bellman_point1 = route.get(2);
+        double temp_bellman_point2 = route.get(1);
+
+        double tempdist1 = final_matrix[source][(int)temp_bellman_point1];
+        double tempdist2 = final_matrix[(int)temp_bellman_point1][(int)temp_bellman_point2];
+        double tempdist3 = final_matrix[(int)temp_bellman_point2][dest];
+
+        double bellman_dist_calc = tempdist1 + tempdist2 + tempdist3;
+        System.out.println("bellman dist calc: " + bellman_dist_calc);
+
+        double bellman_point1 = route.get(2);
+        double bellman_point2 = route.get(1) - circum_points.size();
+
+        Path intermediate_path = circum_path[(int)bellman_point1][(int)bellman_point2];
+        //System.out.println(intermediate_path);
+
+        System.out.println(bellman_point1 + ", " +  bellman_point2);
+
+        GHPoint intermediate1 = bellmanford_hash1.get((int)bellman_point1);
+        GHPoint intermediate2 = bellmanford_hash2.get((int)bellman_point2);
+
+        System.out.println("intermediate: " + intermediate1 + ", " +  intermediate2);
+
+        int circum_index1 = hash_points.get(intermediate1);
+        int circum_index2 = hash_points2.get(intermediate2);
+
+        System.out.println("circum indices: " + circum_index1 + ", " + circum_index2);
+
+        double temptempdist1 = fw_matrix[source_idx][circum_index1];
+        double temptempdist3 = fw_matrix2[circum_index2][end_idx];
+
+        System.out.println("temp dist1: " + tempdist1 + ", temptempdist1: " + temptempdist1);
+        System.out.println("temp dist3: " + tempdist3 + ", temptempdist3: " + temptempdist3);
+
+
+//////////
+        ArrayList<GHPoint> final_path = new ArrayList<GHPoint>();
+
+
+        ArrayList<Integer> path1 = Path(source_idx, circum_index1, fw_next);
+        System.out.println("path1: " + path1);
+
+
+        for(int i = 0; i < path1.size(); i++){
+            GHPoint curr_point = hash_points_reverse.get(path1.get(i));
+            System.out.println(curr_point);
+            final_path.add(curr_point);
+
+        }
+        System.out.println();
+
+        PointList intermediate_path_list = intermediate_path.calcPoints();
+
+        for(int i = 1; i < intermediate_path_list.size()-1; i++){
+            GHPoint curr_point = new GHPoint(intermediate_path_list.getLat(i), intermediate_path_list.getLon(i));
+            //System.out.println(curr_point);
+            final_path.add(curr_point);
+
+        }
+
+        ArrayList<Integer> path2 = Path(circum_index2, end_idx, fw_next2);
+        for(int i = 0; i < path2.size(); i++){
+            GHPoint curr_point = hash_points_reverse2.get(path2.get(i));
+            final_path.add(curr_point);
+            System.out.println(curr_point);
+        }
+        System.out.println("path2: " + path2);
+
+
+
 
 
         long bellmantime = System.currentTimeMillis();
@@ -541,47 +674,62 @@ public class Main {
         GHPoint check_start_point = hash_points_reverse.get(source_idx);
         GHPoint check_end_point = hash_points_reverse2.get(end_idx);
 
-        double check_dist = distCalc.calcDist(check_start_point.getLat(), check_start_point.getLon(), check_end_point.getLat(), check_end_point.getLon());
-        System.out.println("Check dist: " + check_dist);
+        //double check_dist = distCalc.calcDist(check_start_point.getLat(), check_start_point.getLon(), check_end_point.getLat(), check_end_point.getLon());
+        //System.out.println("Check dist: " + check_dist);
 
 
         double total_time = bellmantime - starttime;
         System.out.println("Run time: " + total_time);
 
-        /*
-        QueryGraph queryGraph = new QueryGraph(ghStorage);
-        RoutingTemplate routingTemplate;
-        Weighting weighting = new ShortestWeighting(encoder);
-        TraversalMode tMode = TraversalMode.EDGE_BASED_2DIR; //TraversalMode.NODE_BASED;
+
+        ////////
+
+       System.out.println("Start: " + check_start_point.getLat() + ", " + check_start_point.getLon() + ", End: " + check_end_point.getLat() + ", " + check_end_point.getLon());
 
 
-        List<GHPoint> points = Arrays.asList(check_start_point, check_end_point);
-        List<QueryResult> qResults = lookup(points, encoder, locationIndex);
-        queryGraph.lookup(qResults);
 
 
-        QueryResult fromQResult = qResults.get(0);
-        QueryResult toQResult = qResults.get(1);
 
-        RoutingAlgorithm bidir_algo = new DijkstraBidirectionRef(queryGraph, encoder, weighting, tMode);
-
-        //bmf_algo = new BellmanFord(queryGraph, encoder, weighting, tMode);
-        List<Path> tmpPathList = bidir_algo.calcPaths(fromQResult.getClosestNode(), toQResult.getClosestNode());
-
-
-        GHPoint start2 = new GHPoint(queryLat, queryLon);
-        GHPoint end2 = new GHPoint(queryLat2, queryLon2);
-
-        points = Arrays.asList(start2, end2);
+        points = Arrays.asList(check_start_point, check_end_point);
         qResults = lookup(points, encoder, locationIndex);
 
         fromQResult = qResults.get(0);
         toQResult = qResults.get(1);
 
+        RoutingAlgorithm bidir_algo = new DijkstraBidirectionRef(queryGraph, encoder, weighting, tMode);
+
         bidir_algo = new DijkstraBidirectionRef(queryGraph, encoder, weighting, tMode);
         //bmf_algo = new BellmanFord(queryGraph, encoder, weighting, tMode);
-        tmpPathList = bidir_algo.calcPaths(fromQResult.getClosestNode(), toQResult.getClosestNode());
-        */
+        List<Path> tmpPathList = bidir_algo.calcPaths(fromQResult.getClosestNode(), toQResult.getClosestNode());
+        System.out.println(tmpPathList);
+        Path tmpPath = tmpPathList.get(0);
+        PointList tmpPointList = tmpPath.calcPoints();
+
+        System.out.println("");
+
+        double temp_len = 0;
+        for(int i = 0; i < tmpPointList.size(); i++){
+            GHPoint checkpoint = new GHPoint(tmpPointList.getLat(i), tmpPointList.getLon(i));
+
+            System.out.print(tmpPointList.getLat(i) + "," +  tmpPointList.getLon(i) + "; ");
+
+        }
+
+        System.out.println("");
+
+        GHPoint tempPoint = final_path.get(0);
+        for(int i = 0; i < final_path.size(); i++){
+
+            GHPoint newPoint = final_path.get(i);
+            temp_len += distCalc.calcDist(newPoint.getLat(), newPoint.getLon(), tempPoint.getLat(), tempPoint.getLon());
+
+            tempPoint = newPoint;
+
+            System.out.print(final_path.get(i) + "; ");
+        }
+        System.out.println();
+        System.out.println("temp_len: " + temp_len );
+
 
 
 

@@ -39,6 +39,7 @@ import java.util.PriorityQueue;
  * @author Peter Karich
  */
 
+
 public class BellmanFord {
     private double distances[];
     private double predecessor[];
@@ -48,8 +49,8 @@ public class BellmanFord {
 
     public BellmanFord(int numberofvertices) {
         this.numberofvertices = numberofvertices;
-        distances = new double[numberofvertices + 1];
-        predecessor = new double[numberofvertices + 1];
+        distances = new double[numberofvertices];
+        predecessor = new double[numberofvertices];
 
     }
 
@@ -59,22 +60,24 @@ public class BellmanFord {
     }
 
     public BF_ret BellmanFordEvaluation(int source, double adjacencymatrix[][]) {
-        for (int node = 0; node <= numberofvertices; node++) {
+        for (int node = 0; node < numberofvertices; node++) {
             distances[node] = MAX_VALUE;
             predecessor[node] = -1;
         }
 
         distances[source] = 0;
         for (int node = 1; node <= numberofvertices - 1; node++) {
-            for (int sourcenode = 1; sourcenode <= numberofvertices; sourcenode++) {
-                for (int destinationnode = 1; destinationnode <= numberofvertices; destinationnode++) {
+            for (int sourcenode = 0; sourcenode < numberofvertices; sourcenode++) {
+                for (int destinationnode = 0; destinationnode < numberofvertices; destinationnode++) {
                     if (adjacencymatrix[sourcenode][destinationnode] != MAX_VALUE) {
-                        if (distances[destinationnode] > distances[sourcenode]
-                                + adjacencymatrix[sourcenode][destinationnode])
+                        if (distances[destinationnode] > distances[sourcenode] + adjacencymatrix[sourcenode][destinationnode]) {
                             distances[destinationnode] = distances[sourcenode]
                                     + adjacencymatrix[sourcenode][destinationnode];
-
+                            //if (destinationnode != sourcenode) {
                             predecessor[destinationnode] = sourcenode;
+
+                        }
+                            //System.out.println("Predecessor of " + destinationnode + " is " + sourcenode);
                             //edge is already traversed
 
                     }
@@ -82,8 +85,8 @@ public class BellmanFord {
             }
         }
 
-        for (int sourcenode = 1; sourcenode <= numberofvertices; sourcenode++) {
-            for (int destinationnode = 1; destinationnode <= numberofvertices; destinationnode++) {
+        for (int sourcenode = 0; sourcenode < numberofvertices; sourcenode++) {
+            for (int destinationnode = 0; destinationnode < numberofvertices; destinationnode++) {
                 if (adjacencymatrix[sourcenode][destinationnode] != MAX_VALUE) {
                     if (distances[destinationnode] > distances[sourcenode]
                             + adjacencymatrix[sourcenode][destinationnode])
@@ -100,39 +103,68 @@ public class BellmanFord {
     }
 
     public static void main (String[] args){
+
+        int numberofvertices = 6;
+        //int source = 2;
+
+        double adjacencymatrix[][] = new double[][]{
+                {0, 4, 99999, 99999,-1, 99999},
+                {99999, 0,-1, 99999,-2, 99999},
+                {99999, 99999, 0, 99999, 99999, 99999},
+                {99999, 99999, 99999, 0, 99999, 99999},
+                {99999, 99999, 99999,-5, 0, 3},
+                {99999, 99999, 99999, 99999, 99999, 0}
+        };
+
+        /*
         int numberofvertices = 8;
         //int source = 2;
 
         double adjacencymatrix[][] = new double[][]{
-                {0, 4, 999, 999, 999, 999, 999, 8, 999},
-                {4, 0, 8, 999, 999, 999, 999, 11, 999},
-                {999, 8, 0, 7, 0, 4, 999, 999, 2},
-                {999, 999, 7, 0, 9, 14, 999, 999, 999},
-                {999, 999, 0, 9, 0, 10, 999, 999, 999},
-                {999, 999, 4, 14, 10, 0, 2, 999, 999},
-                {999, 999, 999, 999, 999, 2, 0, 1, 6},
-                {8, 11, 999, 999, 999, 999, 1, 0, 7},
-                {999, 999, 2, 999, 999, 999, 6, 7, 0}
+                {0, 4, 99999, 99999, 99999, 99999, 99999, 99999, 99999},
+                {4, 0, 8, 99999, 99999, 99999, 99999, 99999, 99999},
+                {99999, 8, 0, 7, 0, 4, 99999, 99999, 99999},
+                {99999, 99999, 7, 0, 9, 14, 99999, 99999, 99999},
+                {99999, 99999, 0, 9, 0, 10, 99999, 99999, 99999},
+                {99999, 99999, 4, 14, 10, 0, 2, 99999, 99999},
+                {99999, 99999, 99999, 99999, 99999, 2, 0, 1, 6},
+                {99999, 99999, 99999, 99999, 99999, 99999, 1, 0, 7},
+                {99999, 99999, 99999, 99999, 99999, 99999, 6, 7, 0}
         };
+        */
+
 
         System.out.println("Enter the number of vertices");
 
-        int source = 1;
+        int source = 0;
 
         BellmanFord bellmanford = new BellmanFord(numberofvertices);
         BellmanFord.BF_ret bf_ret = bellmanford.BellmanFordEvaluation(source, adjacencymatrix);
         double [] distances = bf_ret.distances;
         double [] predecessors = bf_ret.predecessors;
 
-        for (int vertex = 1; vertex < distances.length; vertex++) {
+        for (int vertex = 0; vertex < distances.length; vertex++) {
             System.out.println("distance of source  " + source + " to "
                     + vertex + " is " + distances[vertex]);
         }
         int dest = numberofvertices-1;
 
         int counter = 0;
-        for (int vertex = 1; vertex < predecessors.length; vertex++) {
+        for (int vertex = 0; vertex < predecessors.length; vertex++) {
             System.out.println("predecessor of vertex  " + vertex + " is " + predecessors[vertex]);
         }
     }
 }
+
+
+ /*
+        double adjacencymatrix[][] = new double[][]{
+                {999, 999, 999, 999, 999, 999, 999},
+                {999, 0, 4, 999, 999,-1, 999},
+                {999, 999, 0,-1, 999,-2, 999},
+                {999, 999, 999, 0, 999, 999, 999},
+                {999, 999, 999, 999, 0, 999, 999},
+                {999, 999, 999, 999,-5, 0, 3},
+                {999, 999, 999, 999, 999, 999, 0}
+        };
+        */

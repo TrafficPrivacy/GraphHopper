@@ -134,6 +134,8 @@ public class FloydWarshall {
                     if(distances[i][j] > distances[i][k] + distances[k][j]) {
                         distances[i][j] = distances[i][k] + distances[k][j];
                         next[i][j] = next[i][k];
+                        //next[i][k] = next[k][j];
+
                     }
 
                     //System.out.println(distances[i][j]);
@@ -160,7 +162,8 @@ public class FloydWarshall {
     }
 
     public static void main (String[] args){
-        double adjacencymatrix[][] = new double[][]{{0, 4, 0, 0, 0, 0, 0, 8, 0},
+        double adjacencymatrix[][] = new double[][]{
+                {0, 4, 0, 0, 0, 0, 0, 8, 0},
                 {4, 0, 8, 0, 0, 0, 0, 11, 0},
                 {0, 8, 0, 7, 0, 4, 0, 0, 2},
                 {0, 0, 7, 0, 9, 14, 0, 0, 0},
