@@ -36,4 +36,8 @@ public class Validation {
         }
         mToDist.add(newArray);
     }
+
+    public void run() {
+        
+    }
 }
