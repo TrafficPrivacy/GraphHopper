@@ -231,8 +231,6 @@ public final class MapUI {
                 }
                 otherPaths.put(new Pair(path.get(0), path.get(path.size() - 1)), set);
             }
-            System.out.println(otherPaths.size());
-            System.out.println("main path size = " + mMainPath.size());
             LatLong prev = mMainPath.get(0);
             LatLong curt;
             for (int i = 1; i < mMainPath.size(); i++) {
@@ -243,16 +241,13 @@ public final class MapUI {
                 overLapList = new HashSet<Pair>();
                 Pair curPair = new Pair(prev, curt);
                 List<LatLong> list = new ArrayList<LatLong>();
-                System.out.println("A");
                 for (Pair key : otherPaths.keySet()) {
                     if (otherPaths.get(key).contains(curPair)) {
                         overLapList.add(key);
                     }
                 }
-                System.out.println("B");
                 list.add(prev);
                 list.add(curt);
-                System.out.println("C");
                 while (overLapList.size() > 0) {
                     i++;
                     if (i >= mMainPath.size()) {
@@ -278,7 +273,6 @@ public final class MapUI {
                     }
                     list.add(curt);
                 }
-                System.out.println("D");
                 HashMap<LatLong, Integer> dots = new HashMap<LatLong, Integer>();
 
                 ArrayList<LatLong> sourceDots = new ArrayList<LatLong>();
@@ -291,18 +285,13 @@ public final class MapUI {
                     targetDots.add(p.mDotb);
                 }
 
-                System.out.println("E");
-
                 if (overLapList.size() > 1) {
                     MyLineLayer myLineLayer = new MyLineLayer(GRAPHIC_FACTORY, dots,
                             getHeatMapColor(overLapList.size() / (0.0f + mPaths.size())),
                             6.0f, list);
 
-                    System.out.println("F");
-
                     MAP_VIEW.getLayerManager().getLayers().add(myLineLayer);
                     mLayers.add(myLineLayer);
-                    System.out.println("F1");
 //                    for (LatLong dot : sourceDots) {
 //                        createCircle(dot, getHeatMapColor(overLapList.size() / (0.0f + mPaths.size())), 20);
 //                    }
@@ -310,23 +299,17 @@ public final class MapUI {
                             getHeatMapColor(overLapList.size() / (0.0f + mPaths.size())),
                             6.0f, sourceDots);
 
-                    System.out.println("G");
-
                     mSources.add(newSource);
                     MyConvexLayer newTarget = new MyConvexLayer(GRAPHIC_FACTORY,
                             getHeatMapColor(overLapList.size() / (0.0f + mPaths.size())),
                             6.0f, targetDots);
-
-                    System.out.println("H");
 
                     mTargets.add(newTarget);
                     MAP_VIEW.getLayerManager().getLayers().add(newSource);
                     MAP_VIEW.getLayerManager().getLayers().add(newTarget);
                     newSource.setVisible(false);
                     newTarget.setVisible(false);
-                    System.out.println("G");
                     MAP_VIEW.getLayerManager().redrawLayers();
-                    System.out.println("H");
                 }
                 prev = curt;
             }
@@ -528,10 +511,7 @@ public final class MapUI {
             paintStroke.setColor(pathcolor);
             paintStroke.setStrokeWidth(pathstrokeWidth);
             this.setPaintStroke(paintStroke);
-            System.out.println("T");
-            System.out.println(dots.size());
             List<LatLong> convex = getConvex(dots);
-            System.out.println("T1");
             if (convex != null)
                 super.getLatLongs().addAll(convex);
             else
