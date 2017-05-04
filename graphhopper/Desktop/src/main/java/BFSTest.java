@@ -40,6 +40,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Hashtable;
 
+import com.graphhopper.routing.util.*;
+
+
 /**
  * This implementation implements an n-tree to get the closest node or edge from GPS coordinates.
  * <p>
@@ -712,7 +715,7 @@ public class BFSTest {
         List<AdjMatrixEdge> edges = new ArrayList<AdjMatrixEdge>();
     }
 
-    public AdjMatrixReturn BFSAdjMatrix(final double queryLat, final double queryLon, final EdgeFilter edgeFilter) {
+    public AdjMatrixReturn BFSAdjMatrix(final double queryLat, final double queryLon, final EdgeFilter edgeFilter, final FlagEncoder flagEncoder) {
         //System.out.println("findClosest LocationIndexTree");
         final List<GHPoint> return_points = new ArrayList<GHPoint>();
         final List<AdjMatrixEdge> return_edges = new ArrayList<AdjMatrixEdge>();
@@ -760,8 +763,31 @@ public class BFSTest {
 
                             double max_radius = 450.0;
 
-                            double edge_len = edge.getDistance();
+                            double speed = flagEncoder.getSpeed(edge.getFlags());
+                            double reversespeed = flagEncoder.getReverseSpeed(edge.getFlags());
 
+                            double edge_len = 0;
+                            if (speed == 0) {
+                                edge_len = Double.POSITIVE_INFINITY;
+                            }
+                            else {
+                                double SPEED_CONV = 3.6;
+
+                                double time = edge.getDistance() / speed * SPEED_CONV;
+
+                                // add direction penalties at start/stop/via points
+                                boolean unfavoredEdge = edge.getBool(EdgeIteratorState.K_UNFAVORED_EDGE, false);
+                                if (unfavoredEdge) {
+                                    System.out.println("unfavored edge");
+                                    //    time += headingPenalty;
+                                }
+
+                                edge_len = edge.getDistance() + time;
+                            }
+
+                            //if(speed != reversespeed) {
+                            //System.out.println("edgeDistance: " + edge.getDistance() + ", speed: " + speed + ", time: " + time);
+                            //}
                             int edge_id = edge.getEdge();
 
                             //System.out.println("Edge id: " + edge_id);
@@ -778,6 +804,13 @@ public class BFSTest {
                             AdjMatrixEdge curr_edge = new AdjMatrixEdge();
                             curr_edge.start = start_point;
                             curr_edge.end = stop_point;
+
+                            //double distcalc = distCalc.calcDist(start_lat, start_lon, stop_lat, stop_lon);
+
+                            //if(edge_len != distCalc.calcDist(start_lat, start_lon, stop_lat, stop_lon)){
+                            //    System.out.println("edgelen: " + edge_len + ", " + "distcalc: " + distcalc);
+                            //}
+
                             curr_edge.edge_len = edge_len;
 
                             /*
@@ -806,14 +839,14 @@ public class BFSTest {
                                 //System.out.println("start dist: " + start_dist + ", stop_dist: " + stop_dist + ", coord: " + edge.fetchWayGeometry(3));
                             }
                             if (start_dist <= max_radius) {
-                                if(hash_count.containsKey(stop_point)){
+                                if(hash_count.containsKey(start_point)){
                                     //do nothing
                                     //System.out.println("duplicate");
                                 }
                                 else{
 
-                                    hash_count.put(stop_point, 1);
-                                    return_points.add(stop_point);
+                                    hash_count.put(start_point, 1);
+                                    return_points.add(start_point);
                                 }
                             }
 
